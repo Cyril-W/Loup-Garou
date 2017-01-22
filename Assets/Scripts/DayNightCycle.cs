@@ -2,8 +2,9 @@
 using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.Networking;
 
-public class DayNightCycle : MonoBehaviour {
+public class DayNightCycle : NetworkBehaviour {
 
     public ParticleSystem stars;
     public Transform moon;
@@ -12,7 +13,7 @@ public class DayNightCycle : MonoBehaviour {
 
     public float secondsInDay = 60.0f;
     public float secondsInNight = 30.0f;
-    [Range(0,1)]
+    [SyncVar, Range(0,1)]
     public float currentTime = 0.0f;
 
     public Transform clock;
@@ -79,8 +80,10 @@ public class DayNightCycle : MonoBehaviour {
 		var em = stars.emission;
 		int nbOfStars = Mathf.RoundToInt ((1 - intensityMultiplier) * 1000);
 		em.enabled = nbOfStars == 0 ? false : true;
-		if(em.enabled == true)
-			stars.maxParticles = nbOfStars;
+		if (em.enabled == true) {
+			var main = stars.main;
+			main.maxParticles = nbOfStars;
+		}
     }
 
     void checkTime()
