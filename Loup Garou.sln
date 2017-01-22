@@ -1,7 +1,11 @@
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2008
 
+Project("{459DB6A2-4E23-F0B1-E63A-39581882094C}") = "Loup Garou", "Assembly-CSharp-firstpass.csproj", "{257B3C32-D254-FC09-2BA4-EFEDE345BE58}"
+EndProject
 Project("{459DB6A2-4E23-F0B1-E63A-39581882094C}") = "Loup Garou", "Assembly-CSharp.csproj", "{4C126CE3-4708-609A-EDAD-70E3F8BD8A11}"
+EndProject
+Project("{459DB6A2-4E23-F0B1-E63A-39581882094C}") = "Loup Garou", "Assembly-CSharp-Editor.csproj", "{3AA548E0-D64F-EAE1-AD8E-4DB6A6FA2F70}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -9,10 +13,18 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{257B3C32-D254-FC09-2BA4-EFEDE345BE58}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{257B3C32-D254-FC09-2BA4-EFEDE345BE58}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{257B3C32-D254-FC09-2BA4-EFEDE345BE58}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{257B3C32-D254-FC09-2BA4-EFEDE345BE58}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4C126CE3-4708-609A-EDAD-70E3F8BD8A11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4C126CE3-4708-609A-EDAD-70E3F8BD8A11}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4C126CE3-4708-609A-EDAD-70E3F8BD8A11}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4C126CE3-4708-609A-EDAD-70E3F8BD8A11}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3AA548E0-D64F-EAE1-AD8E-4DB6A6FA2F70}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3AA548E0-D64F-EAE1-AD8E-4DB6A6FA2F70}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3AA548E0-D64F-EAE1-AD8E-4DB6A6FA2F70}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3AA548E0-D64F-EAE1-AD8E-4DB6A6FA2F70}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

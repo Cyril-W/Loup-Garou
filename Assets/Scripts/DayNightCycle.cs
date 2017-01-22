@@ -2,9 +2,8 @@
 using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine.Networking;
 
-public class DayNightCycle : NetworkBehaviour {
+public class DayNightCycle : MonoBehaviour {
 
     public ParticleSystem stars;
     public Transform moon;
@@ -13,7 +12,7 @@ public class DayNightCycle : NetworkBehaviour {
 
     public float secondsInDay = 60.0f;
     public float secondsInNight = 30.0f;
-    [SyncVar, Range(0,1)]
+    [Range(0,1)]
     public float currentTime = 0.0f;
 
     public Transform clock;
