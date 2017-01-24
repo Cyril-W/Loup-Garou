@@ -127,9 +127,13 @@
      <Compile Include="Assets\Scripts\FaceCamera.cs" />
      <Compile Include="Assets\Scripts\Minimap.cs" />
      <Compile Include="Assets\Scripts\MinimapObjectID.cs" />
-     <Compile Include="Assets\Scripts\MovePlayer.cs" />
+     <Compile Include="Assets\Scripts\Network\GameManager.cs" />
+     <Compile Include="Assets\Scripts\Network\Launcher.cs" />
      <Compile Include="Assets\Scripts\Network\NetworkManager.cs" />
      <Compile Include="Assets\Scripts\Network\NetworkPlayer.cs" />
+     <Compile Include="Assets\Scripts\Network\PlayerNameInputField.cs" />
+     <Compile Include="Assets\Scripts\PlayerAnimatorManager.cs" />
+     <Compile Include="Assets\Scripts\PlayerManager.cs" />
      <Compile Include="Assets\Scripts\SmoothCameraFollow.cs" />
      <None Include="Assets\Photon Unity Networking\link.xml" />
      <None Include="Assets\Plugins\Photon3Unity3D.xml" />
@@ -154,11 +158,11 @@
  <Reference Include="UnityEngine.VR">
  <HintPath>C:/Program Files/Unity/Editor/Data/UnityExtensions/Unity/UnityVR/RuntimeEditor/UnityEngine.VR.dll</HintPath>
  </Reference>
- <Reference Include="websocket-sharp">
- <HintPath>C:/Users/cyril/Documents/GitHub/Loup Garou/Assets/Plugins/WebSocket/websocket-sharp.dll</HintPath>
- </Reference>
  <Reference Include="Photon3Unity3D">
  <HintPath>C:/Users/cyril/Documents/GitHub/Loup Garou/Assets/Plugins/Photon3Unity3D.dll</HintPath>
+ </Reference>
+ <Reference Include="websocket-sharp">
+ <HintPath>C:/Users/cyril/Documents/GitHub/Loup Garou/Assets/Plugins/WebSocket/websocket-sharp.dll</HintPath>
  </Reference>
   </ItemGroup>
   <ItemGroup>

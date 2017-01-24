@@ -12,7 +12,7 @@ public class NetworkPlayer : Photon.MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 		if (photonView.isMine) {
-			GetComponent<MovePlayer> ().enabled = true;
+//			GetComponent<MovePlayer> ().enabled = true;
 			SmoothCameraFollow.target = transform;
 			Minimap.playerPos = transform;
 			Renderer[] rends = GetComponentsInChildren<Renderer> ();

@@ -5,8 +5,6 @@ using System.Collections.Generic;
 
 public class DayNightCycle : MonoBehaviour {
 
-    public ParticleSystem stars;
-    public Transform moon;
     public float moonDistance = 600.0f;
     public float moonScale = 15.0f;
 
@@ -15,8 +13,9 @@ public class DayNightCycle : MonoBehaviour {
     [Range(0,1)]
     public float currentTime = 0.0f;
 
-    public Transform clock;
-
+	private Transform moon;
+	private ParticleSystem stars;
+    private Image lunarClock;
     private Light sun;
 
     // Use this for initialization
@@ -25,11 +24,12 @@ public class DayNightCycle : MonoBehaviour {
         currentTime = 0.0f;
 
         sun = GetComponent<Light>();
-
+		moon = transform.GetChild (0);
         moon.transform.localPosition = new Vector3(0, 0, moonDistance);
         moon.transform.localScale = new Vector3(moonScale, moonScale, moonScale);
-
-        clock.GetComponent<Image>().fillAmount = 0;
+		stars = GetComponentInChildren<ParticleSystem> ();
+		lunarClock = GameObject.FindGameObjectWithTag ("Clock").GetComponent<Image>();
+		lunarClock.fillAmount = 0;
     }
 
     // Update is called once per frame
@@ -46,18 +46,18 @@ public class DayNightCycle : MonoBehaviour {
 
     void UpdateClock()
     {
-        clock.GetComponent<Image>().fillOrigin = (int)Image.Origin360.Top;
+		lunarClock.fillOrigin = (int)Image.Origin360.Top;
 
         if (currentTime <= 0.5)
         {
-            clock.GetComponent<Image>().fillClockwise = true;
-            clock.GetComponent<Image>().fillAmount = currentTime * 2;
+			lunarClock.fillClockwise = true;
+			lunarClock.fillAmount = currentTime * 2;
 
         }
         else
         {
-            clock.GetComponent<Image>().fillClockwise = false;            
-            clock.GetComponent<Image>().fillAmount = (1 - currentTime) * 2;
+			lunarClock.fillClockwise = false;            
+			lunarClock.fillAmount = (1 - currentTime) * 2;
         }
     }
 
