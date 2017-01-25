@@ -129,8 +129,6 @@
      <Compile Include="Assets\Scripts\MinimapObjectID.cs" />
      <Compile Include="Assets\Scripts\Network\GameManager.cs" />
      <Compile Include="Assets\Scripts\Network\Launcher.cs" />
-     <Compile Include="Assets\Scripts\Network\NetworkManager.cs" />
-     <Compile Include="Assets\Scripts\Network\NetworkPlayer.cs" />
      <Compile Include="Assets\Scripts\Network\PlayerNameInputField.cs" />
      <Compile Include="Assets\Scripts\PlayerAnimatorManager.cs" />
      <Compile Include="Assets\Scripts\PlayerManager.cs" />

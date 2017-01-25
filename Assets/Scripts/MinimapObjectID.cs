@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using Com.Cyril_WIRTZ.Loup_Garou;
 
 public class MinimapObjectID : MonoBehaviour {
 
