@@ -5,28 +5,47 @@ using System.Collections.Generic;
 
 namespace Com.Cyril_WIRTZ.Loup_Garou
 {
-	public class DayNightCycle : MonoBehaviour {
+	public class DayNightCycle : Photon.PunBehaviour, IPunObservable {
 
-	    public float moonDistance = 600.0f;
-	    public float moonScale = 15.0f;
+		#region Public Variables
 
-	    public float secondsInDay = 60.0f;
-	    public float secondsInNight = 30.0f;
-	    [Range(0,1)]
-	    public float currentTime = 0.0f;
 
+		[Tooltip("The distance center-Moon")]
+		public float moonDistance = 600.0f;
+		[Tooltip("The size of the Moon")]
+		public float moonScale = 15.0f;
+
+		[Tooltip("Enter a number of seconds to set the duration of a day")]
+		public float secondsInDay = 60.0f;
+		[Tooltip("Enter a number of seconds to set the duration of a night")]
+		public float secondsInNight = 30.0f;
+		[Range(0,1)]
+		public static float currentTime = 0.0f;
+
+
+		#endregion
+
+		#region Private Variables
+
+
+		private Light sun;
 		private Transform moon;
 		private ParticleSystem stars;
-	    private Image lunarClock;
-	    private Light sun;
+		private Image lunarClock;
+
+
+		#endregion
+	    
+		#region MonoBehaviour CallBacks
+
 
 	    // Use this for initialization
 	    void Start()
 	    {
 	        currentTime = 0.0f;
 
-	        sun = GetComponent<Light>();
-			moon = transform.GetChild (0);
+	        sun = GetComponentInChildren<Light>();
+			moon = transform.GetChild (1);
 	        moon.transform.localPosition = new Vector3(0, 0, moonDistance);
 	        moon.transform.localScale = new Vector3(moonScale, moonScale, moonScale);
 			stars = GetComponentInChildren<ParticleSystem> ();
@@ -46,6 +65,14 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 	        transform.localRotation = Quaternion.Euler((currentTime * 360.0f), 0, 0);
 	    }
 
+
+		#endregion
+
+		#region Custom
+
+		/// <summary>
+		/// Depending on the time, the clock fills clockwise or anticlockwise.
+		/// </summary>
 	    void UpdateClock()
 	    {
 			lunarClock.fillOrigin = (int)Image.Origin360.Top;
@@ -63,6 +90,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 	        }
 	    }
 
+		/// <summary>
+		/// The intensity of light and the number of stars are calculated here.
+		/// </summary>
 	    void UpdateLights()
 	    {        
 	        float intensityMultiplier = 1.0f;
@@ -87,6 +117,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			}
 	    }
 
+		/// <summary>
+		/// This allows to have different duration of a day and a night.
+		/// </summary>
 	    void checkTime()
 	    {
 	        if (currentTime < 0.5f)
@@ -97,11 +130,23 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 	            currentTime = 0.0f;        
 	    }
 
-	    void OnGUI ()
-	    {
-	        int BoxWidth = 100;
-	        int BoxHeight = 30;
-	        currentTime = GUI.HorizontalSlider(new Rect((Screen.width - BoxWidth - 2), 90, BoxWidth, BoxHeight), currentTime, 0.0f, 1.0f);
-	    }
+
+		#endregion
+
+		#region IPunObservable implementation
+
+		void IPunObservable.OnPhotonSerializeView (PhotonStream stream, PhotonMessageInfo info)
+		{
+			if (stream.isWriting)
+			{
+				// send the others the data
+				stream.SendNext(currentTime);
+			}else{
+				// If MasterClient change something, receive data
+				DayNightCycle.currentTime = (float)stream.ReceiveNext();
+			}
+		}
+
+		#endregion
 	}
 }

@@ -1,12 +1,6 @@
 ﻿<Properties StartupItem="Assembly-CSharp.csproj" RefactoringSettings.EnableRefactorings="True">
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" PreferredExecutionTarget="Unity.Instance.Unity Editor" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\Scripts\Network\Launcher.cs">
-    <Files>
-      <File FileName="Assets\Scripts\Network\Launcher.cs" Line="148" Column="5" />
-      <File FileName="Assets\Scripts\Network\GameManager.cs" Line="80" Column="77" />
-      <File FileName="Assets\Scripts\PlayerManager.cs" Line="44" Column="46" />
-    </Files>
-  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.Workbench />
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
     <BreakpointStore />
   </MonoDevelop.Ide.DebuggingService.Breakpoints>

@@ -12,10 +12,31 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 	public class Minimap : MonoBehaviour {
 
+		#region Public Variables
+
+
 		public static Transform playerPos;
 		public float mapScale = 2.0f;
 
 		public static List<MinimapObject> objects = new List<MinimapObject> ();
+
+
+		#endregion
+
+
+		#region MonoBehaviour CallBacks
+
+
+		// Update is called once per frame
+		void Update () {
+			DrawMinimapDots ();
+		}
+
+		#endregion
+
+
+		#region Custom
+
 
 		public static void RegisterMinimapObject (GameObject o, Image i) {
 			Image image = Instantiate (i);
@@ -23,17 +44,13 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		}
 
 		public static void RemoveMinimapObject (GameObject o) {
-			List<MinimapObject> newList = new List<MinimapObject> ();
 			for (int i = 0; i < objects.Count; i++) {
 				if (objects [i].owner == o) {
 					Destroy (objects [i].icon);
-					continue;
-				} else
-					newList.Add (objects [i]);
+					objects.RemoveAt(i);
+					return;
+				}
 			}
-
-			objects.Clear (); //RemoveRange (0, objects.Count);
-			objects.AddRange (newList);
 		}
 
 		void DrawMinimapDots () {
@@ -48,10 +65,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				obj.icon.transform.position = new Vector3 (minimapPos.x, minimapPos.z, 0) + transform.position;
 			}
 		}
-		
-		// Update is called once per frame
-		void Update () {
-			DrawMinimapDots ();
-		}
+
+
+		#endregion
 	}
 }

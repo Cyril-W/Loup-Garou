@@ -9,6 +9,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		#region Public Variables
 
+
 		[Tooltip("The prefab to use for representing the player")]
 		public GameObject playerPrefab;
 
@@ -32,14 +33,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		{
 			Debug.Log( "OnPhotonPlayerConnected() " + other.NickName ); // not seen if you're the player connecting
 
-
 			if ( PhotonNetwork.isMasterClient ) 
-			{
 				Debug.Log( "OnPhotonPlayerConnected isMasterClient " + PhotonNetwork.isMasterClient ); // called before OnPhotonPlayerDisconnected
-
-
-				LoadArena();
-			}
 		}
 
 
@@ -47,14 +42,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		{
 			Debug.Log( "OnPhotonPlayerDisconnected() " + other.NickName ); // seen when other disconnects
 
-
 			if ( PhotonNetwork.isMasterClient ) 
-			{
 				Debug.Log( "OnPhotonPlayerConnected isMasterClient " + PhotonNetwork.isMasterClient ); // called before OnPhotonPlayerDisconnected
-
-
-				LoadArena();
-			}
 		}
 
 
@@ -93,14 +82,13 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region Private Methods
 
 
-		void LoadArena()
+		void OnGUI ()
 		{
-			if ( ! PhotonNetwork.isMasterClient ) 
-			{
-				Debug.LogError( "PhotonNetwork : Trying to Load a level but we are not the master Client" );
+			if (PhotonNetwork.isMasterClient) {
+				int BoxWidth = 100;
+				int BoxHeight = 30;
+				DayNightCycle.currentTime = GUI.HorizontalSlider (new Rect ((Screen.width - BoxWidth - 2), 90, BoxWidth, BoxHeight), DayNightCycle.currentTime, 0.0f, 1.0f);
 			}
-			Debug.Log( "PhotonNetwork : Loading Level : " + PhotonNetwork.room.PlayerCount );
-			PhotonNetwork.LoadLevel("Room for "+PhotonNetwork.room.PlayerCount);
 		}
 
 

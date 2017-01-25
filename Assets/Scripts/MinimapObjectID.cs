@@ -4,16 +4,25 @@ using UnityEngine;
 using UnityEngine.UI;
 using Com.Cyril_WIRTZ.Loup_Garou;
 
-public class MinimapObjectID : MonoBehaviour {
+namespace Com.Cyril_WIRTZ.Loup_Garou
+{
+	public class MinimapObjectID : Photon.PunBehaviour {
 
-	public Image image;
+		public Image image;
 
-	// Use this for initialization
-	void Start () {
-		Minimap.RegisterMinimapObject (gameObject, image);
-	}
+		bool isMyPlayer;
 
-	void OnDestroy () {
-		Minimap.RemoveMinimapObject (gameObject);
+		// Use this for initialization
+		void Start () {
+			isMyPlayer = photonView.isMine;
+
+			if (!isMyPlayer)
+				Minimap.RegisterMinimapObject (gameObject, image);
+		}
+
+		void OnDestroy () {
+			if (!isMyPlayer)
+				Minimap.RemoveMinimapObject (gameObject);
+		}
 	}
 }
