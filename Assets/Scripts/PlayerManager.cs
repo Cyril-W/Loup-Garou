@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Com.Cyril_WIRTZ.Loup_Garou
 {
@@ -18,9 +19,25 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		public static GameObject LocalPlayerInstance;
 
 		[Tooltip("The current Status of our player")]
-		public bool IsAlive = true;
+		public bool isAlive = true;
+
+		[Tooltip("The ID player you voted against")]
+		public int votedPlayerID;
+
+		[Tooltip("The ID of the owner of the player")]
+		public int playerID;
+
 
 		#endregion
+
+		#region Private Variables
+
+
+		int numberOfVote = 0;
+
+
+		#endregion
+
 
 		#region MonoBehaviour CallBacks
 
@@ -43,6 +60,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				rends[2].material.color = Color.blue;
 			}
 			GetComponentInChildren<TextMesh> ().text = photonView.owner.NickName;
+			gameObject.name = photonView.owner.NickName;
+			playerID = photonView.ownerId;
 		}
 
 		/// <summary>
@@ -66,9 +85,19 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// </summary>
 		void Update()
 		{
-			if (IsAlive == false)
+			if ((DayNightCycle.currentTime <= 0.25f || DayNightCycle.currentTime > 0.375f) && votedPlayerID != 0) {
+				votedPlayerID = 0;
+			}
+
+			if (isAlive == false)
 				GameManager.Instance.LeaveRoom ();
+			else {
+				numberOfVote = FillVotedList.RefreshWho ();
+				if (numberOfVote > PhotonNetwork.room.PlayerCount / 2)
+					isAlive = false;
+			}
 		}
+
 
 		#endregion
 
@@ -80,10 +109,12 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			if (stream.isWriting)
 			{
 				// We own this player: send the others our data
-				stream.SendNext(IsAlive);
+				stream.SendNext(isAlive);
+				stream.SendNext(votedPlayerID);
 			}else{
 				// Network player, receive data
-				this.IsAlive = (bool)stream.ReceiveNext();
+				this.isAlive = (bool)stream.ReceiveNext();
+				this.votedPlayerID = (int)stream.ReceiveNext ();
 			}
 		}
 

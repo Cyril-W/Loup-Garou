@@ -33,7 +33,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		{
 			Debug.Log( "OnPhotonPlayerConnected() " + other.NickName ); // not seen if you're the player connecting
 
-			if ( PhotonNetwork.isMasterClient ) 
+			VoteManager.RegisterPlayerForVote (other.ID);
+
+			if ( PhotonNetwork.isMasterClient )
 				Debug.Log( "OnPhotonPlayerConnected isMasterClient " + PhotonNetwork.isMasterClient ); // called before OnPhotonPlayerDisconnected
 		}
 
@@ -42,8 +44,10 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		{
 			Debug.Log( "OnPhotonPlayerDisconnected() " + other.NickName ); // seen when other disconnects
 
+			VoteManager.RemovePlayerForVote (other.ID);
+
 			if ( PhotonNetwork.isMasterClient ) 
-				Debug.Log( "OnPhotonPlayerConnected isMasterClient " + PhotonNetwork.isMasterClient ); // called before OnPhotonPlayerDisconnected
+				Debug.Log( "OnPhotonPlayerDisconnected isMasterClient " + PhotonNetwork.isMasterClient ); // called before OnPhotonPlayerDisconnected
 		}
 
 
@@ -64,7 +68,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				{
 					Debug.Log("We are Instantiating LocalPlayer from "+SceneManagerHelper.ActiveSceneName);
 					// we're in a room. spawn a character for the local player. it gets synced by using PhotonNetwork.Instantiate
-					PhotonNetwork.Instantiate(this.playerPrefab.name, new Vector3(0f,3f,0f), Quaternion.identity, 0);
+					VoteManager.localPlayer = PhotonNetwork.Instantiate(this.playerPrefab.name, new Vector3(0f,3f,0f), Quaternion.identity, 0);
 				}else{
 					Debug.Log("Ignoring scene load for "+SceneManagerHelper.ActiveSceneName);
 				}

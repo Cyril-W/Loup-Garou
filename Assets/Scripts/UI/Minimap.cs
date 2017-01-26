@@ -18,7 +18,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		public static Transform playerPos;
 		public float mapScale = 2.0f;
 
-		public static List<MinimapObject> objects = new List<MinimapObject> ();
+		static List<MinimapObject> objects = new List<MinimapObject> ();
 
 
 		#endregion
