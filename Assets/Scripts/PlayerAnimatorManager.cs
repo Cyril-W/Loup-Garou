@@ -13,6 +13,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		public float rotationSpeed = 100.0f;
 		public float verticalSpeed = 5.0f;
 
+		[Tooltip("The current state of the player")]
+		public static bool isBlocked = false;
+
 		#endregion
 
 		#region Private Variables
@@ -43,7 +46,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		// Update is called once per frame
 		void Update ()
 		{
-			if (photonView.isMine == false && PhotonNetwork.connected == true)
+			if ((photonView.isMine == false && PhotonNetwork.connected == true) || isBlocked)
 				return;
 			
 			//Jump
@@ -64,7 +67,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					
 		void FixedUpdate () 
 		{
-			if (photonView.isMine == false && PhotonNetwork.connected == true)
+			if ((photonView.isMine == false && PhotonNetwork.connected == true) || isBlocked)
 				return;
 			
 			float translation = Input.GetAxis ("Vertical") * speed;

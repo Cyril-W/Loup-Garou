@@ -101,6 +101,11 @@
             Class to wrap static access to the random.Next() call in a thread safe manner.
             </summary>
         </member>
+        <member name="T:ExitGames.Client.Photon.EncryptorManaged.CryptoBase">
+            <summary>
+            Base class for encryptor/decryptor classes
+            </summary>
+        </member>
         <member name="F:ExitGames.Client.Photon.EncryptorManaged.CryptoBase.BLOCK_SIZE">
             <summary>
             Defines block size for encryption/decryption algorithm
@@ -115,6 +120,85 @@
             <summary>
             Defines HMAC size for packet authentication algorithm
             </summary>
+        </member>
+        <member name="F:ExitGames.Client.Photon.EncryptorManaged.CryptoBase.encryptor">
+            <summary>
+            Encryption/decryption algorithm implementation
+            </summary>
+        </member>
+        <member name="F:ExitGames.Client.Photon.EncryptorManaged.CryptoBase.hmacsha256">
+            <summary>
+            Packet authentication algorithm impelmenation
+            </summary>
+        </member>
+        <member name="M:ExitGames.Client.Photon.EncryptorManaged.CryptoBase.Init(System.Byte[],System.Byte[])">
+            <summary>
+            Initialize
+            </summary>
+            <param name="encryptionSecret"></param>
+            <param name="hmacSecret"></param>
+        </member>
+        <member name="T:ExitGames.Client.Photon.EncryptorManaged.Encryptor">
+            <summary>
+            Implemenation of encryption for UDP trafic
+            </summary>
+        </member>
+        <member name="M:ExitGames.Client.Photon.EncryptorManaged.Encryptor.Encrypt(System.Byte[],System.Int32,System.Byte[],System.Int32@)">
+            <summary>
+            Encrypts data. puts them into output buffer and prepends with IV
+            </summary>
+            <param name="data"></param>
+            <param name="len"></param>
+            <param name="output"></param>
+            <param name="offset"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ExitGames.Client.Photon.EncryptorManaged.Encryptor.HMAC(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Calcualtes HMAC for this pice of data. HMAC can be called few times for different pices of data.
+            To finish calcualtion call FinishHMAC
+            </summary>
+            <param name="data">buffer with data</param>
+            <param name="offset">offset in buffer</param>
+            <param name="count">count byte to use from buffer</param>
+        </member>
+        <member name="M:ExitGames.Client.Photon.EncryptorManaged.Encryptor.FinishHMAC">
+            <summary>
+            Finishes current HMAC
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:ExitGames.Client.Photon.EncryptorManaged.Encryptor.FinishHMAC(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Finishes current HMAC. can be used for HMAC calculation if all data are in same buffer
+            </summary>
+            <param name="data">buffer with data</param>
+            <param name="offset">offset in buffer</param>
+            <param name="count">count byte to use from buffer</param>
+            <returns>calculated HASH</returns>
+        </member>
+        <member name="T:ExitGames.Client.Photon.EncryptorManaged.Decryptor">
+            <summary>
+            Implements decryption for UDP protocol
+            </summary>
+        </member>
+        <member name="M:ExitGames.Client.Photon.EncryptorManaged.Decryptor.DecryptBufferWithIV(System.Byte[],System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            Decrypts buffer containing HMAC
+            </summary>
+            <param name="data">encrypted data prepened by IV</param>
+            <param name="offset">offset in the buffer</param>
+            <param name="len">len of data to decrypt</param>
+            <param name="outLen">len of decrypted data</param>
+            <returns></returns>
+        </member>
+        <member name="M:ExitGames.Client.Photon.EncryptorManaged.Decryptor.CheckHMAC(System.Byte[],System.Int32)">
+            <summary>
+            Checkes wheter data have corect HMAC or not
+            </summary>
+            <param name="data">buffer with data and HMAC</param>
+            <param name="len">len of data including HMAC</param>
+            <returns>true if check pass, false otherwise</returns>
         </member>
         <member name="T:ExitGames.Client.Photon.StatusCode">
             <summary>
@@ -233,13 +317,13 @@
             in use (room names are their IDs).
             
             This method is used as general callback for all operations. Each response corresponds to a certain 
-            &quot;type&quot; of operation by its OperationCode.
+            &quot;type&quot; of operation by its OperationCode (see: <see cref="!:Operations" />).
             <para></para>
             </remarks>
             <example>
             When you join a room, the server will assign a consecutive number to each client: the 
             &quot;actorNr&quot; or &quot;player number&quot;. This is sent back in the OperationResult's 
-            Parameters as value of key <see cref="!:ParameterCode.ActorNr" />.<para></para>
+            Parameters as value of key <see cref="!:EventCode.ActorNr" />.<para></para>
             
             Fetch your actorNr of a Join response like this:<para></para>
             <c>int actorNr = (int)operationResponse[(byte)OperationCode.ActorNr];</c>
@@ -637,13 +721,13 @@
         </member>
         <member name="F:ExitGames.Client.Photon.PhotonPeer.SentCountAllowance">
              <summary>
-             Number of send retries before a peer is considered lost/disconnected. Default: 7.
+             Number of send retries before a peer is considered lost/disconnected. Default: 5.
              The initial timeout countdown of a command is calculated by the current roundTripTime + 4 * roundTripTimeVariance.
              Please note that the timeout span until a command will be resent is not constant, but based on
              the roundtrip time at the initial sending, which will be doubled with every failed retry.
             
              DisconnectTimeout and SentCountAllowance are competing settings: either might trigger a disconnect on the
-             client first, depending on the values and Roundtrip Time.
+             client first, depending on the values and Rountrip Time.
              </summary>
         </member>
         <member name="F:ExitGames.Client.Photon.PhotonPeer.TimePingInterval">
@@ -663,7 +747,7 @@
              re-sending!
             
              DisconnectTimeout and SentCountAllowance are competing settings: either might trigger a disconnect on the
-             client first, depending on the values and Roundtrip Time.
+             client first, depending on the values and Rountrip Time.
              Default: 10000 ms.
              </summary>
         </member>
@@ -1038,7 +1122,7 @@
             Channel-less wrapper for OpCustom().
             </summary>
             <param name="customOpCode">Operations are handled by their byte\-typed code.
-            The codes of the &quot;LoadBalancong&quot; application are in the class <see cref="!:LoadBalancing.OperationCode" />.</param>
+            The codes of the &quot;LoadBalancong&quot; application are in the class <see cref="!:ExitGames.Client.Photon.LoadBalancing.OperationCode" />.</param>
             <param name="customOpParameters">Containing parameters as key\-value pair. The key is byte\-typed, while the value is any serializable datatype.</param>
             <param name="sendReliable">Selects if the operation must be acknowledged or not. If false, the
                                        operation is not guaranteed to reach the server.</param>
@@ -1053,6 +1137,7 @@
             byte, defined server side and known as operation code (opCode). Similarly, the operation's parameters
             are defined server side as byte keys of values, which a client sends as customOpParameters
             accordingly.<para></para>
+            This is explained in more detail as &quot;<see cref="!:Operations" text="Custom Operations" />&quot;.
             <param name="customOpCode">Operations are handled by their byte\-typed code. The codes of the
                                        &quot;LoadBalancing&quot; application are in the class <see cref="!:ExitGames.Client.Photon.LoadBalancing.OperationCode" />.</param>
             <param name="customOpParameters">Containing parameters as key\-value pair. The key is byte\-typed, while the value is any serializable datatype.</param>
@@ -1740,20 +1825,20 @@
             <returns>True if the Photon Ping could be sent.</returns>
         </member>
         <member name="M:ExitGames.Client.Photon.IPhotonSocket.TryParseAddress(System.String,System.String@,System.UInt16@,System.String@,System.String@)">
-             <summary>
-             Separates the given address into address (host name or IP) and port. Port must be included after colon!
-             </summary>
-             <remarks>
-             This method expects any address to include a port. The final ':' in addressAndPort has to separate it.
-             IPv6 addresses have multiple colons and <b>must use brackets</b> to separate address from port.
+            <summary>
+            Separates the given address into address (host name or IP) and port. Port must be included after colon!
+            </summary>
+            <remarks>
+            This method expects any address to include a port. The final ':' in addressAndPort has to separate it.
+            IPv6 addresses have multiple colons and <b>must use brackets</b> to separate address from port.
             
-             Examples:
-                 ns.exitgames.com:5058
-                 http://[2001:db8:1f70::999:de8:7648:6e8]:100/
-                 [2001:db8:1f70::999:de8:7648:6e8]:100
-             See:
-                 http://serverfault.com/questions/205793/how-can-one-distinguish-the-host-and-the-port-in-an-ipv6-url
-             </remarks>
+            Examples:
+                ns.exitgames.com:5058
+                http://[2001:db8:1f70::999:de8:7648:6e8]:100/
+                [2001:db8:1f70::999:de8:7648:6e8]:100
+            See:
+                http://serverfault.com/questions/205793/how-can-one-distinguish-the-host-and-the-port-in-an-ipv6-url
+            </remarks>
         </member>
         <member name="M:ExitGames.Client.Photon.IPhotonSocket.IsIpv6SimpleCheck(System.Net.IPAddress)">
             <summary>Implements a (very) simple test if a (valid) IPAddress is IPv6 by testing for colons (:).</summary>
@@ -1914,7 +1999,7 @@
         </member>
         <member name="P:ExitGames.Client.Photon.TrafficStatsGameLevel.LongestDeltaBetweenDispatching">
             <summary>
-            Gets longest time between subsequent calls to DispatchIncomgingCommands in milliseconds.
+            Gets longest time between subsequent calls to DispatchIncomginCommands in milliseconds.
             Note: This is not a crucial timing for the networking. Long gaps just add "local lag" to events that are available already.
             </summary>
         </member>
@@ -1979,7 +2064,7 @@
             <summary>Gets count of bytes as traffic, excluding UDP/TCP headers (42 bytes / x bytes).</summary>
         </member>
         <member name="P:ExitGames.Client.Photon.TrafficStats.TimestampOfLastAck">
-            <summary>Timestamp of the last incoming ACK that has been read (every PhotonPeer.TimePingInterval milliseconds this client sends a PING which must be ACKd).</summary>
+            <summary>Timestamp of the last incoming ACK read (every second this client sends a PING which must be ACKd.</summary>
         </member>
         <member name="P:ExitGames.Client.Photon.TrafficStats.TimestampOfLastReliableCommand">
             <summary>Timestamp of last incoming reliable command (every second we expect a PING).</summary>

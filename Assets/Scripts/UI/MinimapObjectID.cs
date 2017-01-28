@@ -6,8 +6,12 @@ using Com.Cyril_WIRTZ.Loup_Garou;
 
 namespace Com.Cyril_WIRTZ.Loup_Garou
 {
+	/// <summary>
+	/// Placed on an object your want to track the position on your minimap. The image shown on the minimap is customable.
+	/// </summary>
 	public class MinimapObjectID : Photon.PunBehaviour {
 
+		[Tooltip("Custom image used to show the position of the gameObject on the minimap")]
 		public Image image;
 
 		bool isMyPlayer;

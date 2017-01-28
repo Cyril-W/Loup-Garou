@@ -7,7 +7,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 {
 	/// <summary>
 	/// Player manager. 
-	/// Handles Status of player.
+	/// Handles Status of player and who he voted against.
 	/// </summary>
 	public class PlayerManager : Photon.PunBehaviour, IPunObservable
 	{
@@ -92,7 +92,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			if (isAlive == false)
 				GameManager.Instance.LeaveRoom ();
 			else {
-				numberOfVote = FillVotedList.RefreshWho ();
+				numberOfVote = VoteManager.RefreshWho ();
 				if (numberOfVote > PhotonNetwork.room.PlayerCount / 2)
 					isAlive = false;
 			}

@@ -30,6 +30,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 
 		#region Private Variables
+	
 
 		/// <summary>
 		/// Keep track of the current process. Since connection is asynchronous and is based on several callbacks from Photon, 
@@ -176,7 +177,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				progressLabel.SetActive(false);
 			}
 
-			Debug.Log("/Launcher: OnConnectedToMaster() was called by PUN");
+			// Debug.Log("/Launcher: OnConnectedToMaster() was called by PUN");
 		}
 
 
@@ -185,12 +186,12 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			controlPanel.SetActive(true);
 			progressLabel.SetActive(false);
 
-			Debug.LogWarning("/Launcher: OnDisconnectedFromPhoton() was called by PUN");        
+			// Debug.LogWarning("/Launcher: OnDisconnectedFromPhoton() was called by PUN");        
 		}
 
 		public override void OnPhotonRandomJoinFailed (object[] codeAndMsg)
 		{
-			Debug.Log("/Launcher:OnPhotonRandomJoinFailed() was called by PUN. No random room available, so we create one.\nCalling: PhotonNetwork.CreateRoom(null, new RoomOptions() {maxPlayers = 4}, null);");
+			// Debug.Log("/Launcher:OnPhotonRandomJoinFailed() was called by PUN. No random room available, so we create one.\nCalling: PhotonNetwork.CreateRoom(null, new RoomOptions() {maxPlayers = 4}, null);");
 
 			// #Critical: we failed to join a random room, maybe none exists or they are all full. No worries, we create a new room.
 			PhotonNetwork.CreateRoom(null, new RoomOptions() { MaxPlayers = MaxPlayersPerRoom }, null);
@@ -202,7 +203,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			// Load the Room Level. 
 			PhotonNetwork.LoadLevel("Main");
 
-			Debug.Log("/Launcher: OnJoinedRoom() called by PUN. Now this client is in a room.");
+			// Debug.Log("/Launcher: OnJoinedRoom() called by PUN. Now this client is in a room.");
 		}
 
 		#endregion

@@ -6,32 +6,13 @@ Questions? Visit:
 https://www.photonengine.com
 https://doc.photonengine.com
 http://forum.photonengine.com
- 
 
 
-*** Version 4.1.1.6 (9. December 2016 - rev3801)
-    Changed: Default SentCountAllowance = 7.
-Loadbalancing:
-    Added: OpJoinRandom will now "remember" to send ExpectedUsers to the Game Server (by caching the value).
-    Added: AuthEvent and it's handling. This (internally sent) event can now update the client's token anytime (before that expires).
-    Added: LoadBalancingClient.OpChangeGroups().
-    Changed: LoadBalancingClient.Disconnect() no longer sets it's own State to Disconnected. It waits till the state-change callback gets called by the lib.
-
-
-*** Version 4.1.1.5 (18. November 2016 - rev3775)
-Internal:
-    Fixed: Photon-init request is now created by the factory method CreateAndEnqueueCommand to make sure we fragment the init if needed (for small MTU and more init-data).
-    Fixed: Bug in TrafficStatsReset method, which caused the averaged stats to go up infinitely after a reset.
-
-*** Version 4.1.1.4 (21. October 2016 - rev3737)
-    Internal: Added ArraySegment<T> support for byte[]. This way, we can internally reuse more memory.
-    Changed: Implementations of PeerBase Disconnect() are now using EnqueueStatusCallback(StatusCode.Disconnect) to delay the "callback". That enables any thread to call Disconnect() while the status change correctly gets called in the main thread via DispatchIncomingCommands().
-    Changed: When a SocketImplementationConfig for UDP is set, this will be used via Activator.CreateInstance(socketImplementation, this).
-
-*** Version 4.1.1.3 (20. September 2016 - rev3673)
+*** Version 4.1.1.3 ()
     Changed: NETFX_CORE implementation for UDP. This no longer attempts to detach the stream after every single Send, which caused issues when connecting and getting a lot of messages.
 
-*** Version 4.1.1.2 (13. September 2016 - rev3652)
+
+*** Version 4.1.1.2 (13.10.2016 - rev3652)
     Changed: There are less variants of the Photon library now, which makes it easier to integrate, run and test. There is a general "DotNet" version and a Windows Store (universal) dll. These two also come as Unity build and in Debug and Release. UWP can use the Universal/WSA library.
 	Added: PhotonPeer.SocketImplementationConfig. This allows easier configuration of the IPhotonSocket type to use per protocol, so that switching protocols is easier (compared to having to set a SocketImplementation before connecting).
 	Changed: PhotonPeer.SocketImplementation can't be set public. Use the SocketImplementationConfig instead.

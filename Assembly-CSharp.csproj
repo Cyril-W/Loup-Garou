@@ -123,6 +123,7 @@
      <Compile Include="Assets\PhotonChatApi\ChatState.cs" />
      <Compile Include="Assets\PhotonChatApi\ChatUserStatus.cs" />
      <Compile Include="Assets\PhotonChatApi\IChatClientListener.cs" />
+     <Compile Include="Assets\Scripts\ChatManager.cs" />
      <Compile Include="Assets\Scripts\DayNightCycle.cs" />
      <Compile Include="Assets\Scripts\FaceCamera.cs" />
      <Compile Include="Assets\Scripts\Network\GameManager.cs" />
@@ -131,7 +132,7 @@
      <Compile Include="Assets\Scripts\PlayerAnimatorManager.cs" />
      <Compile Include="Assets\Scripts\PlayerManager.cs" />
      <Compile Include="Assets\Scripts\SmoothCameraFollow.cs" />
-     <Compile Include="Assets\Scripts\UI\FillVotedList.cs" />
+     <Compile Include="Assets\Scripts\UI\ChatBoxFunctions.cs" />
      <Compile Include="Assets\Scripts\UI\Minimap.cs" />
      <Compile Include="Assets\Scripts\UI\MinimapObjectID.cs" />
      <Compile Include="Assets\Scripts\VoteManager.cs" />

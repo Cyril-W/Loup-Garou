@@ -5,11 +5,19 @@ using UnityEngine.UI;
 
 namespace Com.Cyril_WIRTZ.Loup_Garou
 {
+	/// <summary>
+	/// Minimap Object. 
+	/// Is used to link a dot on the minimap with its owner.
+	/// </summary>
 	public class MinimapObject {
 		public Image icon { get; set; }
 		public GameObject owner { get; set; }
 	}
 
+	/// <summary>
+	/// Minimap. 
+	/// Handles the coordinates of other players on your minimap, using trigonometric position.
+	/// </summary>
 	public class Minimap : MonoBehaviour {
 
 		#region Public Variables
@@ -38,11 +46,17 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region Custom
 
 
+		/// <summary>
+		/// Create the image one the minimapr and register it on the list of minimap objects.
+		/// </summary>
 		public static void RegisterMinimapObject (GameObject o, Image i) {
 			Image image = Instantiate (i);
 			objects.Add (new MinimapObject () { owner = o, icon = image });
 		}
 
+		/// <summary>
+		/// Remove the image from the minimap and the list of minimap objects.
+		/// </summary>
 		public static void RemoveMinimapObject (GameObject o) {
 			for (int i = 0; i < objects.Count; i++) {
 				if (objects [i].owner == o) {
@@ -53,6 +67,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			}
 		}
 
+		/// <summary>
+		/// Calculate position of other players from your localPlayer and put the dot in the right place. If the player turn it simply pivot around the center of the minimap
+		/// </summary>
 		void DrawMinimapDots () {
 			foreach (MinimapObject obj in objects) {
 				Vector3 minimapPos = (obj.owner.transform.position - playerPos.position);

@@ -31,23 +31,23 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		public override void OnPhotonPlayerConnected( PhotonPlayer other  )
 		{
-			Debug.Log( "OnPhotonPlayerConnected() " + other.NickName ); // not seen if you're the player connecting
+			// Debug.Log( "OnPhotonPlayerConnected() " + other.NickName ); // not seen if you're the player connecting
 
 			VoteManager.RegisterPlayerForVote (other.ID);
 
-			if ( PhotonNetwork.isMasterClient )
-				Debug.Log( "OnPhotonPlayerConnected isMasterClient " + PhotonNetwork.isMasterClient ); // called before OnPhotonPlayerDisconnected
+			//if ( PhotonNetwork.isMasterClient )
+			//	Debug.Log( "OnPhotonPlayerConnected isMasterClient " + PhotonNetwork.isMasterClient ); // called before OnPhotonPlayerDisconnected
 		}
 
 
 		public override void OnPhotonPlayerDisconnected( PhotonPlayer other  )
 		{
-			Debug.Log( "OnPhotonPlayerDisconnected() " + other.NickName ); // seen when other disconnects
+			//Debug.Log( "OnPhotonPlayerDisconnected() " + other.NickName ); // seen when other disconnects
 
 			VoteManager.RemovePlayerForVote (other.ID);
 
-			if ( PhotonNetwork.isMasterClient ) 
-				Debug.Log( "OnPhotonPlayerDisconnected isMasterClient " + PhotonNetwork.isMasterClient ); // called before OnPhotonPlayerDisconnected
+			//if ( PhotonNetwork.isMasterClient ) 
+			//	Debug.Log( "OnPhotonPlayerDisconnected isMasterClient " + PhotonNetwork.isMasterClient ); // called before OnPhotonPlayerDisconnected
 		}
 
 
@@ -66,17 +66,18 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			} else {
 				if (PlayerManager.LocalPlayerInstance==null)
 				{
-					Debug.Log("We are Instantiating LocalPlayer from "+SceneManagerHelper.ActiveSceneName);
+					//Debug.Log("We are Instantiating LocalPlayer from "+SceneManagerHelper.ActiveSceneName);
 					// we're in a room. spawn a character for the local player. it gets synced by using PhotonNetwork.Instantiate
 					VoteManager.localPlayer = PhotonNetwork.Instantiate(this.playerPrefab.name, new Vector3(0f,3f,0f), Quaternion.identity, 0);
 				}else{
-					Debug.Log("Ignoring scene load for "+SceneManagerHelper.ActiveSceneName);
+					//Debug.Log("Ignoring scene load for "+SceneManagerHelper.ActiveSceneName);
 				}
 			}
 		}
 
 		public void LeaveRoom()
 		{
+			ChatManager.LeaveChat ();
 			PhotonNetwork.LeaveRoom();
 		}
 
