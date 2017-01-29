@@ -37,6 +37,10 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				if (PlayerPrefs.HasKey(playerNamePrefKey))
 				{
 					defaultName = PlayerPrefs.GetString(playerNamePrefKey);
+
+					if (!PhotonNetwork.connected)
+						defaultName = PlayerManager.GetProperName (defaultName);
+					
 					_inputField.text = defaultName;
 				}
 			}

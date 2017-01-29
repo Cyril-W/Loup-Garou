@@ -9,10 +9,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 	{
 		#region Public Variables
 
-		[Tooltip("The Ui Panel to let the user select whether he wants to join existing or random room")]
-		public GameObject controlPanel;
-		[Tooltip("The UI Label to inform the user that the connection is in progress")]
-		public GameObject progressLabel;
+
+		[Tooltip("The UI Canvas to handle the chat system")]
+		public GameObject chatCanvas;
 
 		/// <summary>
 		/// The maximum number of players per room. When a room is full, it can't be joined by new players, and so new room will be created.
@@ -44,6 +43,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// </summary>
 		string _gameVersion = "1";
 
+		//static GameObject _chatCanvas;
 
 		#endregion
 
@@ -75,6 +75,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// </summary>
 		void Start()
 		{
+			if (GameObject.FindGameObjectWithTag ("Canvas") != null)
+				OnOkPressed ();
+			
 			Connect ();
 		}
 
@@ -83,6 +86,25 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 
 		#region Public Methods
+
+
+		/// <summary>
+		/// Used the set the chat connection process with a proper username. 
+		/// </summary>
+		public void OnOkPressed()
+		{
+			transform.GetChild(0).GetChild (1).gameObject.SetActive (true);
+			transform.GetChild(0).GetChild (2).gameObject.SetActive (true);
+			InputField inputField = transform.GetChild(0).GetChild (0).GetComponentInChildren<InputField> ();
+			inputField.text += Random.Range (1000, 9999);
+			inputField.DeactivateInputField();
+			inputField.interactable = false;
+			if (GameObject.FindGameObjectWithTag("Canvas") == null)
+				Instantiate (chatCanvas);
+			else
+				inputField.text = ChatManager.UserName;
+			transform.GetChild(0).GetChild (0).GetChild (2).gameObject.SetActive (false);
+		}
 
 		/// <summary>
 		/// Start the connection process. 
@@ -97,8 +119,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				PhotonNetwork.ConnectUsingSettings (_gameVersion);
 			}
 
-			controlPanel.SetActive(true);
-			progressLabel.SetActive(false);
+			transform.GetChild(0).gameObject.SetActive(true);
+			transform.GetChild(1).gameObject.SetActive(false);
 		}
 
 		/// <summary>
@@ -115,16 +137,11 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			if (!PhotonNetwork.connected) {
 				Connect ();
 			} else {
-				controlPanel.SetActive (false);
-				progressLabel.SetActive (true);
+				transform.GetChild(0).gameObject.SetActive (false);
+				transform.GetChild(1).gameObject.SetActive (true);
 
-				// we don't want to do anything if we are not attempting to join a room. 
-				// this case where isConnecting is false is typically when you lost or quit the game, when this level is loaded, OnConnectedToMaster will be called, in that case
-				// we don't want to do anything.
-				if (isConnecting) {
-					// #Critical we need at this point to attempt joining a Random Room. If it fails, we'll get notified in OnPhotonRandomJoinFailed() and we'll create one.
-					PhotonNetwork.JoinRandomRoom ();
-				}
+				// #Critical we need at this point to attempt joining a Random Room. If it fails, we'll get notified in OnPhotonRandomJoinFailed() and we'll create one.
+				PhotonNetwork.JoinRandomRoom ();
 			}
 		}
 
@@ -143,20 +160,15 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			{
 				Connect ();
 			} else {
-				string roomName = controlPanel.GetComponentInChildren<InputField>().text;
+				string roomName = transform.GetChild(0).GetChild(1).GetComponentInChildren<InputField>().text;
 
-				controlPanel.SetActive (false);
-				progressLabel.SetActive (true);
+				transform.GetChild(0).gameObject.SetActive (false);
+				transform.GetChild(1).gameObject.SetActive (true);
 
-				// we don't want to do anything if we are not attempting to join a room. 
-				// this case where isConnecting is false is typically when you lost or quit the game, when this level is loaded, OnConnectedToMaster will be called, in that case
-				// we don't want to do anything.
-				if (isConnecting) {
-					// #Critical we need at this point to attempt joining an existing and named Room. If it fails, we'll get notified in OnPhotonRandomJoinFailed() and we'll create one.
-					RoomOptions roomOptions = new RoomOptions ();
-					roomOptions.IsVisible = false;
-					PhotonNetwork.JoinOrCreateRoom (roomName, roomOptions, TypedLobby.Default);
-				}
+				// #Critical we need at this point to attempt joining an existing and named Room. If it fails, we'll get notified in OnPhotonRandomJoinFailed() and we'll create one.
+				RoomOptions roomOptions = new RoomOptions ();
+				roomOptions.IsVisible = false;
+				PhotonNetwork.JoinOrCreateRoom (roomName, roomOptions, TypedLobby.Default);
 			}
 		}
 
@@ -173,26 +185,20 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			// we don't want to do anything.
 			if (isConnecting)
 			{
-				controlPanel.SetActive(true);
-				progressLabel.SetActive(false);
+				transform.GetChild(0).gameObject.SetActive(true);
+				transform.GetChild(1).gameObject.SetActive(false);
 			}
-
-			// Debug.Log("/Launcher: OnConnectedToMaster() was called by PUN");
 		}
 
 
 		public override void OnDisconnectedFromPhoton()
 		{
-			controlPanel.SetActive(true);
-			progressLabel.SetActive(false);
-
-			// Debug.LogWarning("/Launcher: OnDisconnectedFromPhoton() was called by PUN");        
+			transform.GetChild(0).gameObject.SetActive(true);
+			transform.GetChild(1).gameObject.SetActive(false);      
 		}
 
 		public override void OnPhotonRandomJoinFailed (object[] codeAndMsg)
 		{
-			// Debug.Log("/Launcher:OnPhotonRandomJoinFailed() was called by PUN. No random room available, so we create one.\nCalling: PhotonNetwork.CreateRoom(null, new RoomOptions() {maxPlayers = 4}, null);");
-
 			// #Critical: we failed to join a random room, maybe none exists or they are all full. No worries, we create a new room.
 			PhotonNetwork.CreateRoom(null, new RoomOptions() { MaxPlayers = MaxPlayersPerRoom }, null);
 		}
@@ -200,11 +206,10 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		public override void OnJoinedRoom()
 		{
 			// #Critical
-			// Load the Room Level. 
-			PhotonNetwork.LoadLevel("Main");
-
-			// Debug.Log("/Launcher: OnJoinedRoom() called by PUN. Now this client is in a room.");
+			// Load the Lobby Level. 
+			PhotonNetwork.LoadLevel("Lobby");
 		}
+
 
 		#endregion
 	}

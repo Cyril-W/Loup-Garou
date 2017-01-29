@@ -21,19 +21,11 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		[Tooltip("The current Status of our player")]
 		public bool isAlive = true;
 
-		[Tooltip("The ID player you voted against")]
-		public int votedPlayerID;
+		[Tooltip("The current Status of our player")]
+		public bool isReady = false;
 
-		[Tooltip("The ID of the owner of the player")]
-		public int playerID;
-
-
-		#endregion
-
-		#region Private Variables
-
-
-		int numberOfVote = 0;
+		[Tooltip("The player you voted against")]
+		public string votedPlayer;
 
 
 		#endregion
@@ -47,6 +39,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// </summary>
 		void Start()
 		{		
+			isReady = false;
+			isAlive = true;
+
 			if (photonView.isMine) {
 				SmoothCameraFollow.target = transform;
 				Minimap.playerPos = transform;
@@ -59,9 +54,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				rends[1].material.color = Color.blue;
 				rends[2].material.color = Color.blue;
 			}
+
 			GetComponentInChildren<TextMesh> ().text = photonView.owner.NickName;
 			gameObject.name = photonView.owner.NickName;
-			playerID = photonView.ownerId;
 		}
 
 		/// <summary>
@@ -72,9 +67,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			// #Important
 			// used in GameManager.cs: we keep track of the localPlayer instance to prevent instantiation when levels are synchronized
 			if (photonView.isMine)
-			{
 				PlayerManager.LocalPlayerInstance = this.gameObject;
-			}
+			
 			// #Critical
 			// we flag as don't destroy on load so that instance survives level synchronization, thus giving a seamless experience when levels load.
 			DontDestroyOnLoad(this.gameObject);
@@ -85,17 +79,31 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// </summary>
 		void Update()
 		{
-			if ((DayNightCycle.currentTime <= 0.25f || DayNightCycle.currentTime > 0.375f) && votedPlayerID != 0) {
-				votedPlayerID = 0;
-			}
+			Renderer[] renderers = gameObject.GetComponentsInChildren<Renderer> ();
+			renderers[0].enabled = isAlive;
+			renderers[1].enabled = isAlive;
+		}
 
-			if (isAlive == false)
-				GameManager.Instance.LeaveRoom ();
-			else {
-				numberOfVote = VoteManager.RefreshWho ();
-				if (numberOfVote > PhotonNetwork.room.PlayerCount / 2)
-					isAlive = false;
+
+		#endregion
+
+
+		#region Custon
+
+
+		public void SetReadyStatus() {
+			isReady = true;
+		}
+
+		public static string GetProperName(string name) {
+			int nbToKeep = 0;
+			foreach (char c in name) {
+				if (c != ' ' && !char.IsNumber (c))
+					nbToKeep++;
+				else
+					return name.Substring (0, nbToKeep);
 			}
+			return name;
 		}
 
 
@@ -110,11 +118,13 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			{
 				// We own this player: send the others our data
 				stream.SendNext(isAlive);
-				stream.SendNext(votedPlayerID);
+				stream.SendNext(votedPlayer);
+				stream.SendNext (isReady);
 			}else{
 				// Network player, receive data
 				this.isAlive = (bool)stream.ReceiveNext();
-				this.votedPlayerID = (int)stream.ReceiveNext ();
+				this.votedPlayer = (string)stream.ReceiveNext ();
+				this.isReady = (bool)stream.ReceiveNext ();
 			}
 		}
 

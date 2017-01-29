@@ -126,6 +126,7 @@
      <Compile Include="Assets\Scripts\ChatManager.cs" />
      <Compile Include="Assets\Scripts\DayNightCycle.cs" />
      <Compile Include="Assets\Scripts\FaceCamera.cs" />
+     <Compile Include="Assets\Scripts\LobbyManager.cs" />
      <Compile Include="Assets\Scripts\Network\GameManager.cs" />
      <Compile Include="Assets\Scripts\Network\Launcher.cs" />
      <Compile Include="Assets\Scripts\Network\PlayerNameInputField.cs" />
@@ -136,6 +137,7 @@
      <Compile Include="Assets\Scripts\UI\Minimap.cs" />
      <Compile Include="Assets\Scripts\UI\MinimapObjectID.cs" />
      <Compile Include="Assets\Scripts\VoteManager.cs" />
+     <None Include="Assets\Fonts\3Dtext.shader" />
      <None Include="Assets\Photon Unity Networking\link.xml" />
      <None Include="Assets\Plugins\Photon3Unity3D.xml" />
      <None Include="Assets\Plugins\release_history.txt" />

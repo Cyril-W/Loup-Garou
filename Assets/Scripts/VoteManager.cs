@@ -11,7 +11,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 	/// </summary>
 	public class PlayerButton {
 		public Button Button { get; set; }
-		public int PlayerID { get; set; }
+		public string PlayerName { get; set; }
 	}
 
 	/// <summary>
@@ -58,22 +58,32 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			_votePanel = votePanel;
 			_whoVoted = whoVoted;
 
-			PhotonPlayer[] players = PhotonNetwork.otherPlayers;
-			foreach (PhotonPlayer player in players)
-				RegisterPlayerForVote (player.ID);
+			_whoVoted.text = "";
+
+			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
+			foreach (GameObject player in players) {
+				if(player.name != PhotonNetwork.player.NickName)
+					RegisterPlayerForVote (player.name);
+			}
 			
 			_votePanel.SetActive (false);
 		}
 		
 		// Update is called once per frame
-		void Update () {			
+		void Update () {	
+			PlayerManager player = PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ();
+
 			if (DayNightCycle.currentTime >= 0.25f && DayNightCycle.currentTime < 0.375f) {
-				if (!hasVoted)
-					_votePanel.SetActive (true);
-				else
+				if (VoteManager.RefreshWho () > PhotonNetwork.room.PlayerCount / 2) {
+					player.isAlive = false;
 					_votePanel.SetActive (false);
+					GetComponent<VoteManager>().enabled = false;
+				} else
+					_votePanel.SetActive (!hasVoted);
 			} else {
 				hasVoted = false;
+				player.votedPlayer = "";
+				RefreshPlayerList ();
 				_votePanel.SetActive (false);
 			}
 		}
@@ -84,6 +94,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		#region Custom
 
+
 		/// <summary>
 		/// Searches through all the players, checks if they voted against you and updates your numberOfVote.
 		/// </summary>
@@ -93,8 +104,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
 			foreach (GameObject player in players) {
-				if (player.GetComponent<PlayerManager> ().votedPlayerID == PhotonNetwork.player.ID) {
-					_whoVoted.text += "~ " + player.name + "\n";
+				if (player.GetComponent<PlayerManager>().votedPlayer == PlayerManager.LocalPlayerInstance.name) {
+					_whoVoted.text += "~ " + PlayerManager.GetProperName(player.name) + "\n";
 					numberOfVote++;
 				}
 			}
@@ -102,8 +113,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			return numberOfVote;
 		}
 
-		public static void OnClicked(int playerIDClicked) {
-			localPlayer.GetComponent<PlayerManager> ().votedPlayerID = playerIDClicked;
+		public static void OnClicked(string playerClicked) {
+			PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ().votedPlayer = playerClicked;
 
 			hasVoted = true;
 		}
@@ -111,23 +122,38 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// <summary>
 		/// Add a button linked to the player photonID and add listener on it.
 		/// </summary>
-		public static void RegisterPlayerForVote (int playerID) {
+		public static void RegisterPlayerForVote (string playerName) {
 			Button btn = Instantiate (_voteButton);
-			btn.GetComponentInChildren<Text> ().text = PhotonPlayer.Find(playerID).NickName;
+			btn.GetComponentInChildren<Text> ().text = PlayerManager.GetProperName(playerName);
 			btn.transform.SetParent (_votePanel.transform.GetChild(1).GetChild(0));
-			btn.onClick.AddListener (delegate { OnClicked (playerID); });
+			btn.onClick.AddListener (delegate { VoteManager.OnClicked (playerName); });
 
-			playerButtons.Add (new PlayerButton() {Button = btn, PlayerID = playerID});
+			playerButtons.Add (new PlayerButton() {Button = btn, PlayerName = playerName});
 		}
 
 		/// <summary>
 		/// Remove the button linked to the player photonID.
 		/// </summary>
-		public static void RemovePlayerForVote (int playerID) {
-			PlayerButton playerButton = playerButtons.Find (p => p.PlayerID == playerID);
+		public static void RemovePlayerForVote (string playerName) {
+			PlayerButton playerButton = playerButtons.Find (p => p.PlayerName == playerName);
 			Destroy(playerButton.Button.gameObject);
 
 			playerButtons.Remove (playerButton);
+		}
+
+		/// <summary>
+		/// Updates the players that still can be voted.
+		/// </summary>
+		public static void RefreshPlayerList () {
+			foreach (PlayerButton pB in playerButtons)
+				Destroy (pB.Button.gameObject);
+			playerButtons.Clear ();
+
+			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
+			foreach (GameObject player in players) {
+				if (player.name != PhotonNetwork.player.NickName && player.GetComponent<PlayerManager> ().isAlive)
+					RegisterPlayerForVote (player.name);
+			}
 		}
 
 

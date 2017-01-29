@@ -68,6 +68,16 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		}
 
 		/// <summary>
+		/// Remove all the images from the minimap to start a new minimap.
+		/// </summary>
+		public static void FlushMap () {
+			for (int i = 0; i < objects.Count; i++) {
+				Destroy (objects [i].icon);
+				objects.RemoveAt(i);
+			}
+		}
+
+		/// <summary>
 		/// Calculate position of other players from your localPlayer and put the dot in the right place. If the player turn it simply pivot around the center of the minimap
 		/// </summary>
 		void DrawMinimapDots () {

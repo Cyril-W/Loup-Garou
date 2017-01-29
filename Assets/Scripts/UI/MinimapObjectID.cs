@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using Com.Cyril_WIRTZ.Loup_Garou;
+using UnityEngine.SceneManagement;
 
 namespace Com.Cyril_WIRTZ.Loup_Garou
 {
@@ -19,6 +20,21 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		// Use this for initialization
 		void Start () {
 			isMyPlayer = photonView.isMine;
+
+			if (!isMyPlayer)
+				Minimap.RegisterMinimapObject (gameObject, image);
+		}
+
+		void OnEnable() {
+			SceneManager.sceneLoaded += OnSceneLoaded;
+		}
+
+		void OnDisable() {
+			SceneManager.sceneLoaded -= OnSceneLoaded;
+		}
+
+		void OnSceneLoaded(Scene scene, LoadSceneMode mode) {
+			Minimap.FlushMap ();
 
 			if (!isMyPlayer)
 				Minimap.RegisterMinimapObject (gameObject, image);
