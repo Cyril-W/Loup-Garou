@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 namespace Com.Cyril_WIRTZ.Loup_Garou
 {
@@ -18,13 +19,11 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 	/// Vote manager. 
 	/// Handles voting time (when to show the panel), and vote from the localPlayer, which is synced by Photon.
 	/// </summary>
-	public class VoteManager : MonoBehaviour {
+	public class VoteManager : Photon.PunBehaviour {
 
 		#region Public Variables
 
 
-		[Tooltip("The local player who votes on this client")]
-		public static GameObject localPlayer;
 		[Tooltip("The panel used for voting against player")]
 		public GameObject votePanel;
 		[Tooltip("The Prefab used to populate the player list")]
@@ -43,7 +42,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		static Button _voteButton;
 		static Text _whoVoted;
 		static List<PlayerButton> playerButtons = new List<PlayerButton> ();
-		static bool hasVoted = false;
+		static bool _hasVoted = false;
 
 
 		#endregion
@@ -77,23 +76,42 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				if (VoteManager.RefreshWho () > PhotonNetwork.room.PlayerCount / 2) {
 					player.isAlive = false;
 					_votePanel.SetActive (false);
-					GetComponent<VoteManager>().enabled = false;
+					GetComponent<VoteManager> ().enabled = false;
 				} else
-					_votePanel.SetActive (!hasVoted);
+					_votePanel.SetActive (!_hasVoted);
 			} else {
-				hasVoted = false;
-				player.votedPlayer = "";
 				RefreshPlayerList ();
 				_votePanel.SetActive (false);
+				_hasVoted = false;
+				player.votedPlayer = "";
+
 			}
 		}
 
+		public void OnApplicationQuit() 
+		{
+			VoteManager.RemovePlayerForVote (PlayerManager.LocalPlayerInstance.name);
+		}
+
+		/// <summary>
+		/// Called when the local player left the room. We need to load the launcher scene.
+		/// </summary>
+		public override void OnLeftRoom()
+		{
+			SceneManager.LoadScene(0);
+		}
 
 		#endregion
 
 
 		#region Custom
 
+
+		public void LeaveRoom()
+		{
+			VoteManager.RemovePlayerForVote (PhotonNetwork.player.NickName);
+			PhotonNetwork.LeaveRoom();
+		}
 
 		/// <summary>
 		/// Searches through all the players, checks if they voted against you and updates your numberOfVote.
@@ -116,7 +134,11 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		public static void OnClicked(string playerClicked) {
 			PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ().votedPlayer = playerClicked;
 
-			hasVoted = true;
+			_hasVoted = true;
+		}
+
+		public void OnSkipVote() {
+			_hasVoted = true;
 		}
 
 		/// <summary>
@@ -136,7 +158,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// </summary>
 		public static void RemovePlayerForVote (string playerName) {
 			PlayerButton playerButton = playerButtons.Find (p => p.PlayerName == playerName);
-			Destroy(playerButton.Button.gameObject);
+			if(playerButton != null)
+				Destroy(playerButton.Button.gameObject);
 
 			playerButtons.Remove (playerButton);
 		}
@@ -145,8 +168,10 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// Updates the players that still can be voted.
 		/// </summary>
 		public static void RefreshPlayerList () {
-			foreach (PlayerButton pB in playerButtons)
-				Destroy (pB.Button.gameObject);
+			foreach (PlayerButton pB in playerButtons) {
+				if(pB.Button != null)
+					Destroy (pB.Button.gameObject);
+			}
 			playerButtons.Clear ();
 
 			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
@@ -154,6 +179,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				if (player.name != PhotonNetwork.player.NickName && player.GetComponent<PlayerManager> ().isAlive)
 					RegisterPlayerForVote (player.name);
 			}
+				
+			_votePanel.GetComponentInChildren<ScrollRect> ().verticalNormalizedPosition = 1;
 		}
 
 

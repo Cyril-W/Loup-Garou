@@ -28,8 +28,6 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		[Tooltip("Field containing the message to be sent")]
 		public InputField InputFieldMessage;
 	
-		static int _HistoryLengthToFetch;
-		static Text _chatMessages;
 		static int _previousScene;
 
 		#region MonoBehaviour Callback
@@ -37,8 +35,6 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		// Use this for initialization
 		void Start () {
-			_HistoryLengthToFetch = HistoryLengthToFetch;
-			_chatMessages = chatMessages;
 			_previousScene = 0;
 
 			DontDestroyOnLoad (gameObject);
@@ -93,7 +89,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 			if (newSceneIndex == 0) { // to Launcher scene
 				ChannelName = "global#";
-				chatClient.Subscribe (new string[] { ChannelName }, _HistoryLengthToFetch);
+				chatClient.Subscribe (new string[] { ChannelName }, HistoryLengthToFetch);
 
 				if (formerSceneIndex == 1) { //from Lobby	
 					chatClient.PublishMessage ("lobby#" + RoomName, "left the lobby channel");
@@ -106,7 +102,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			} 
 			else if (newSceneIndex == 1) { // to Lobby scene
 				ChannelName = "lobby#" + RoomName;
-				chatClient.Subscribe (new string[] { ChannelName }, _HistoryLengthToFetch);
+				chatClient.Subscribe (new string[] { ChannelName }, HistoryLengthToFetch);
 
 				if (formerSceneIndex == 0) { //from Launcher	
 					chatClient.PublishMessage ("global#", "left the global channel");
@@ -118,7 +114,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			} 
 			else if (newSceneIndex == 2) { // to Main scene
 				ChannelName = "villager#" + RoomName;
-				chatClient.Subscribe (new string[] { ChannelName }, _HistoryLengthToFetch);
+				chatClient.Subscribe (new string[] { ChannelName }, HistoryLengthToFetch);
 
 				if (formerSceneIndex == 1) { //from Lobby	
 					chatClient.PublishMessage ("lobby#" + RoomName, "left the lobby channel");
@@ -211,7 +207,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		void IChatClientListener.OnUnsubscribed (string[] channels)
 		{
 			if (channels.Length == 1) {
-				_chatMessages.text = "Welcome to the in-game Chat. Have fun playing!\n------------------------------------------\n[You left the " + GetChannelName(channels[0]) + " channel]\n";
+				chatMessages.text = "Welcome to the in-game Chat. Have fun playing!\n------------------------------------------\n[You left the " + GetChannelName(channels[0]) + " channel]\n";
 			} else
 				Debug.Log ("Oops, seems there is more than one channel!");
 		}
@@ -235,7 +231,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		void IChatClientListener.OnConnected ()
 		{
-			chatClient.Subscribe (new string[] { ChannelName }, _HistoryLengthToFetch);
+			chatClient.Subscribe (new string[] { ChannelName }, HistoryLengthToFetch);
 			// chatClient.SetOnlineStatus (ChatUserStatus.Online);
 		}
 

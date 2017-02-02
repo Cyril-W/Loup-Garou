@@ -70,6 +70,16 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		#region Custom
 
+
+		void OnGUI ()
+		{
+			if (PhotonNetwork.isMasterClient) {
+				int BoxWidth = 140;
+				int BoxHeight = 30;
+				DayNightCycle.currentTime = GUI.HorizontalSlider (new Rect ((Screen.width - BoxWidth - 10), 5, BoxWidth, BoxHeight), DayNightCycle.currentTime, 0.0f, 1.0f);
+			}
+		}
+
 		/// <summary>
 		/// Depending on the time, the clock fills clockwise or anticlockwise.
 		/// </summary>

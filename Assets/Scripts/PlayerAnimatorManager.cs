@@ -13,8 +13,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		public float rotationSpeed = 100.0f;
 		public float verticalSpeed = 5.0f;
 
-		[Tooltip("The current state of the player")]
 		public static bool isBlocked = false;
+		public static Transform compas;
 
 		#endregion
 
@@ -39,8 +39,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				Debug.LogWarning("PlayerAnimatorManager is Missing Animator Component",this);
 			walkingSpeed = speed;
 			runningSpeed = 2 * speed;
-			rb = GetComponent<Rigidbody>();
-			distToGround = GetComponent<Collider>().bounds.extents.y;
+			rb = GetComponentInChildren<Rigidbody>();
+			distToGround = GetComponentInChildren<Collider>().bounds.extents.y;
 		}
 
 		// Update is called once per frame
@@ -74,11 +74,14 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			float rotation = Input.GetAxis ("Horizontal") * rotationSpeed;
 
 			if (translation != 0 || rotation != 0) 
-			{
+			{		
 				translation *= Time.deltaTime;
 				rotation *= Time.deltaTime;
 				transform.Translate (0, 0, translation);
 				transform.Rotate (0, rotation, 0);
+				if(!compas)
+					compas.Rotate (0, 0, -rotation);
+				
 				if(!anim)
 					anim.SetBool ("isWalking", true);
 			} else 

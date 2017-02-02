@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 namespace Com.Cyril_WIRTZ.Loup_Garou
 {
@@ -18,14 +19,20 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		[Tooltip("The local player instance. Use this to know if the local player is represented in the Scene")]
 		public static GameObject LocalPlayerInstance;
 
-		[Tooltip("The current Status of our player")]
+		[Tooltip("Is our local player alive?")]
 		public bool isAlive = true;
 
-		[Tooltip("The current Status of our player")]
+		[Tooltip("Is our local player ready?")]
 		public bool isReady = false;
 
 		[Tooltip("The player you voted against")]
 		public string votedPlayer;
+
+		[Tooltip("The role you were attributed")]
+		public string role;
+
+		[Tooltip("The tent you were attributed")]
+		public string tent;
 
 
 		#endregion
@@ -35,43 +42,34 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 
 		/// <summary>
-		/// MonoBehaviour method called on GameObject by Unity during initialization phase.
+		/// MonoBehaviour method called on GameObject by Unity during early initialization phase.
 		/// </summary>
-		void Start()
+		void Awake()
 		{		
+			gameObject.name = photonView.owner.NickName;
+
 			isReady = false;
 			isAlive = true;
 
 			if (photonView.isMine) {
-				SmoothCameraFollow.target = transform;
-				Minimap.playerPos = transform;
+				PlayerManager.LocalPlayerInstance = gameObject;
 
 				Renderer[] rends = GetComponentsInChildren<Renderer> ();
-				rends[1].material.color = Color.red;
+				rends[0].material.SetColor("_TintColor", Color.red);
+				rends[1].material.SetColor("_TintColor", Color.red);
 				rends[2].material.color = Color.red;
+
+
 			} else {
 				Renderer[] rends = GetComponentsInChildren<Renderer> ();
-				rends[1].material.color = Color.blue;
+				rends[0].material.SetColor("_TintColor", Color.blue);
+				rends[1].material.SetColor("_TintColor", Color.blue);
 				rends[2].material.color = Color.blue;
+
+
 			}
 
-			GetComponentInChildren<TextMesh> ().text = photonView.owner.NickName;
-			gameObject.name = photonView.owner.NickName;
-		}
-
-		/// <summary>
-		/// MonoBehaviour method called on GameObject by Unity during early initialization phase.
-		/// </summary>
-		void Awake()
-		{
-			// #Important
-			// used in GameManager.cs: we keep track of the localPlayer instance to prevent instantiation when levels are synchronized
-			if (photonView.isMine)
-				PlayerManager.LocalPlayerInstance = this.gameObject;
-			
-			// #Critical
-			// we flag as don't destroy on load so that instance survives level synchronization, thus giving a seamless experience when levels load.
-			DontDestroyOnLoad(this.gameObject);
+			GetComponentInChildren<TextMesh> ().text = PlayerManager.GetProperName(gameObject.name);
 		}
 
 		/// <summary>
@@ -79,20 +77,51 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// </summary>
 		void Update()
 		{
-			Renderer[] renderers = gameObject.GetComponentsInChildren<Renderer> ();
-			renderers[0].enabled = isAlive;
-			renderers[1].enabled = isAlive;
+			if (SceneManagerHelper.ActiveSceneBuildIndex == 1) {
+				if (isReady)
+					transform.position = new Vector3 (transform.position.x, Mathf.PingPong (Time.time, 1f) + 3, transform.position.z);
+			}else {
+				Renderer[] renderers = gameObject.GetComponentsInChildren<Renderer> ();
+				renderers[0].enabled = isAlive;
+				renderers[1].enabled = isAlive;
+			}
+		}
+
+		void OnEnable() {
+			SceneManager.sceneLoaded += OnSceneLoaded;
+		}
+
+		void OnDisable() {
+			SceneManager.sceneLoaded -= OnSceneLoaded;
 		}
 
 
 		#endregion
 
 
-		#region Custon
+		#region Custom
 
 
-		public void SetReadyStatus() {
-			isReady = true;
+		void OnSceneLoaded(Scene scene, LoadSceneMode mode) {
+			if (scene.buildIndex == 2) {
+				// transform.position = new Vector3 (transform.position.x, 2f, transform.position.y);
+				gameObject.GetComponent<Rigidbody>().isKinematic = false;
+				transform.GetChild (0).gameObject.SetActive (true);
+				transform.GetChild (2).gameObject.SetActive (false);
+
+				Renderer[] rends = GetComponentsInChildren<Renderer> ();
+				if(photonView.isMine) {
+					rends[1].material.color = Color.red;
+					rends[2].material.color = Color.red;
+				} else {
+					rends[1].material.color = Color.blue;
+					rends[2].material.color = Color.blue;
+				}
+
+				if(!photonView.isMine)
+					GetComponent<MinimapObjectID> ().enabled = true;
+				GetComponent<PlayerAnimatorManager> ().enabled = true;
+			}
 		}
 
 		public static string GetProperName(string name) {
@@ -106,11 +135,18 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			return name;
 		}
 
+		[PunRPC]
+		public void SetPlayerRoleAndTent (string role, string tent) {
+			this.role = role;
+			this.tent = tent;
+		}
+
 
 		#endregion
 
 
 		#region IPunObservable implementation
+
 
 		void IPunObservable.OnPhotonSerializeView (PhotonStream stream, PhotonMessageInfo info)
 		{
@@ -118,15 +154,18 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			{
 				// We own this player: send the others our data
 				stream.SendNext(isAlive);
+				stream.SendNext(isReady);
 				stream.SendNext(votedPlayer);
-				stream.SendNext (isReady);
+				stream.SendNext (role);
 			}else{
 				// Network player, receive data
 				this.isAlive = (bool)stream.ReceiveNext();
+				this.isReady = (bool)stream.ReceiveNext();
 				this.votedPlayer = (string)stream.ReceiveNext ();
-				this.isReady = (bool)stream.ReceiveNext ();
+				this.role = (string)stream.ReceiveNext ();
 			}
 		}
+
 
 		#endregion
 	}
