@@ -22,10 +22,5 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			if (gameObject.CompareTag ("Player") == false || gameObject != PlayerManager.LocalPlayerInstance)
 				Minimap.Instance.RegisterMinimapObject (gameObject, image, color);
 		}
-
-		void OnDestroy () {
-			if(gameObject.CompareTag("Player") == false || gameObject != PlayerManager.LocalPlayerInstance)
-				Minimap.Instance.RemoveMinimapObject (gameObject);
-		}
 	}
 }

@@ -20,7 +20,6 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 	/// Handles voting time (when to show the panel), and vote from the localPlayer, which is synced by Photon.
 	/// </summary>
 	public class VoteManager : Photon.PunBehaviour {
-
 		#region Public Variables
 
 
@@ -31,6 +30,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		[Tooltip("The Text used to display who voted against you")]
 		public Text whoVoted;
 
+		public static VoteManager Instance;
+
 
 		#endregion
 
@@ -38,11 +39,10 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region Private Variables
 
 
-		static GameObject _votePanel;
-		static Button _voteButton;
-		static Text _whoVoted;
 		static List<PlayerButton> playerButtons = new List<PlayerButton> ();
+		static List<string> _votedPlayers;
 		static bool _hasVoted = false;
+		static bool _voteChecked = false;
 
 
 		#endregion
@@ -53,38 +53,68 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		// Use this for initialization
 		void Start () {
-			_voteButton = voteButton;
-			_votePanel = votePanel;
-			_whoVoted = whoVoted;
-
-			_whoVoted.text = "";
+			Instance = this;
+			whoVoted.text = "";
 
 			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
 			foreach (GameObject player in players) {
 				if(player.name != PhotonNetwork.player.NickName)
 					RegisterPlayerForVote (player.name);
 			}
-			
-			_votePanel.SetActive (false);
+			_votedPlayers = new List<string> ();
+			votePanel.SetActive (false);
 		}
 		
 		// Update is called once per frame
 		void Update () {	
 			PlayerManager player = PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ();
+			RefreshVotedPlayer (ref _votedPlayers);
 
 			if (DayNightCycle.currentTime >= 0.25f && DayNightCycle.currentTime < 0.375f) {
-				if (VoteManager.RefreshWho () > PhotonNetwork.room.PlayerCount / 2) {
-					player.isAlive = false;
-					_votePanel.SetActive (false);
-					GetComponent<VoteManager> ().enabled = false;
-				} else
-					_votePanel.SetActive (!_hasVoted);
-			} else {
+				whoVoted.transform.parent.gameObject.SetActive (true);
+				_voteChecked = false;
+				if(player.isAlive)
+					votePanel.SetActive (!_hasVoted);
+			} else if (DayNightCycle.currentTime >= 0.375f && DayNightCycle.currentTime < 0.75f) {
 				RefreshPlayerList ();
-				_votePanel.SetActive (false);
+				votePanel.SetActive (false);
 				_hasVoted = false;
 				player.votedPlayer = "";
 
+				// we just do this once, using a flag
+				if (!_voteChecked) {
+					bool isAlive = CheckVote ();
+					_voteChecked = true;
+					_hasVoted = false;
+					if (!isAlive) {
+						player.isAlive = false;
+						votePanel.SetActive (false);
+						GetComponent<VoteManager> ().enabled = false;
+					}
+				}
+			} else if (DayNightCycle.currentTime >= 0.75f && DayNightCycle.currentTime < 0.875f) {
+				whoVoted.transform.parent.gameObject.SetActive (false);
+				_voteChecked = false;
+				if(player.role == "Werewolf" && player.isAlive)
+					votePanel.SetActive (!_hasVoted);
+			} else {
+				RefreshPlayerList ();
+				votePanel.SetActive (false);
+				_hasVoted = false;
+				player.votedPlayer = "";
+
+				// we just do this once, using a flag
+				if (!_voteChecked) {
+					bool isAlive = CheckVote ();
+					_voteChecked = true;
+					_hasVoted = false;
+					if (!isAlive) {
+						player.isAlive = false;
+						votePanel.SetActive (false);
+						whoVoted.transform.parent.gameObject.SetActive (true);
+						GetComponent<VoteManager> ().enabled = false;
+					}
+				}
 			}
 		}
 
@@ -114,21 +144,52 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		}
 
 		/// <summary>
-		/// Searches through all the players, checks if they voted against you and updates your numberOfVote.
+		/// Searches through all the players, checks if they voted against you and updates the people who were voted against.
 		/// </summary>
-		public static int RefreshWho () {
-			int numberOfVote = 0;
-			_whoVoted.text = "";
+		void RefreshVotedPlayer(ref List<string> votedPlayers) {
+			VoteManager.Instance.whoVoted.text = "";
+			votedPlayers.Clear ();
 
 			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
 			foreach (GameObject player in players) {
-				if (player.GetComponent<PlayerManager>().votedPlayer == PlayerManager.LocalPlayerInstance.name) {
-					_whoVoted.text += "~ " + PlayerManager.GetProperName(player.name) + "\n";
-					numberOfVote++;
+				PlayerManager pM = player.GetComponent<PlayerManager> ();
+				if (pM.votedPlayer != "") {
+					votedPlayers.Add (pM.votedPlayer);
+					if (pM.votedPlayer == PlayerManager.LocalPlayerInstance.name)
+						VoteManager.Instance.whoVoted.text += "~ " + PlayerManager.GetProperName(player.name) + "\n";
 				}
 			}
+		}
 
-			return numberOfVote;
+		/// <summary>
+		/// Searches through all the voted player list, if one has stricly more votes than the other, he's eliminated.
+		/// If 2 or more players have the same number of vote, no one is eliminated.
+		/// </summary>
+		bool CheckVote() {
+			if (_votedPlayers.Count == 0)
+				return true;
+			else {
+				int previousCount = _votedPlayers.FindAll (p => p == _votedPlayers [0]).Count;
+				List<string> mostVotedPlayers = new List<string> ();
+				mostVotedPlayers.Add (_votedPlayers [0]);
+
+				for (int i = 1; i < _votedPlayers.Count; i++) {
+					int newCount = _votedPlayers.FindAll (p => p == _votedPlayers [i]).Count;
+					if (newCount > previousCount) {
+						mostVotedPlayers.Remove (_votedPlayers [i - 1]);
+						mostVotedPlayers.Add (_votedPlayers [i]);
+						previousCount = newCount;
+					} else if (newCount == previousCount && _votedPlayers [i - 1] != _votedPlayers [i])
+						mostVotedPlayers.Add (_votedPlayers [i]);
+				}
+					
+				if (mostVotedPlayers.Count > 1)
+					return true;
+				else if (mostVotedPlayers [0] != PlayerManager.LocalPlayerInstance.name)
+					return true;
+				else 
+					return false;
+			}
 		}
 
 		public static void OnClicked(string playerClicked) {
@@ -145,9 +206,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// Add a button linked to the player photonID and add listener on it.
 		/// </summary>
 		public static void RegisterPlayerForVote (string playerName) {
-			Button btn = Instantiate (_voteButton);
+			Button btn = Instantiate (VoteManager.Instance.voteButton);
 			btn.GetComponentInChildren<Text> ().text = PlayerManager.GetProperName(playerName);
-			btn.transform.SetParent (_votePanel.transform.GetChild(1).GetChild(0));
+			btn.transform.SetParent (VoteManager.Instance.votePanel.transform.GetChild(1).GetChild(0));
 			btn.onClick.AddListener (delegate { VoteManager.OnClicked (playerName); });
 
 			playerButtons.Add (new PlayerButton() {Button = btn, PlayerName = playerName});
@@ -180,7 +241,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					RegisterPlayerForVote (player.name);
 			}
 				
-			_votePanel.GetComponentInChildren<ScrollRect> ().verticalNormalizedPosition = 1;
+			VoteManager.Instance.votePanel.GetComponentInChildren<ScrollRect> ().verticalNormalizedPosition = 1;
 		}
 
 

@@ -19,6 +19,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		[Tooltip("The local player instance. Use this to know if the local player is represented in the Scene")]
 		public static GameObject LocalPlayerInstance;
 
+		[Tooltip("The Sprites used to display the roles of the players")]
+		public List<Sprite> roleSprites;
+
 		[Tooltip("Is our local player alive?")]
 		public bool isAlive = true;
 
@@ -33,6 +36,14 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		[Tooltip("The tent you were attributed")]
 		public string tent;
+
+
+		#endregion
+
+		#region Private Variables
+
+
+		Transform _rolePanel;
 
 
 		#endregion
@@ -52,21 +63,15 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			isAlive = true;
 
 			if (photonView.isMine) {
-				PlayerManager.LocalPlayerInstance = gameObject;
-
 				Renderer[] rends = GetComponentsInChildren<Renderer> ();
 				rends[0].material.SetColor("_TintColor", Color.red);
 				rends[1].material.SetColor("_TintColor", Color.red);
 				rends[2].material.color = Color.red;
-
-
 			} else {
 				Renderer[] rends = GetComponentsInChildren<Renderer> ();
 				rends[0].material.SetColor("_TintColor", Color.blue);
 				rends[1].material.SetColor("_TintColor", Color.blue);
 				rends[2].material.color = Color.blue;
-
-
 			}
 
 			GetComponentInChildren<TextMesh> ().text = PlayerManager.GetProperName(gameObject.name);
@@ -80,10 +85,13 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			if (SceneManagerHelper.ActiveSceneBuildIndex == 1) {
 				if (isReady)
 					transform.position = new Vector3 (transform.position.x, Mathf.PingPong (Time.time, 1f) + 3, transform.position.z);
-			}else {
-				Renderer[] renderers = gameObject.GetComponentsInChildren<Renderer> ();
-				renderers[0].enabled = isAlive;
-				renderers[1].enabled = isAlive;
+			} else {
+				transform.GetChild (0).gameObject.SetActive (isAlive);
+				transform.GetChild (2).gameObject.SetActive (!isAlive);
+				if (photonView.isMine) {
+					SetTextForRole (role);
+					_rolePanel.GetComponentInChildren<Button> ().interactable = isAlive;
+				}
 			}
 		}
 
@@ -104,7 +112,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		void OnSceneLoaded(Scene scene, LoadSceneMode mode) {
 			if (scene.buildIndex == 2) {
-				// transform.position = new Vector3 (transform.position.x, 2f, transform.position.y);
+				_rolePanel = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (1);
+
 				gameObject.GetComponent<Rigidbody>().isKinematic = false;
 				transform.GetChild (0).gameObject.SetActive (true);
 				transform.GetChild (2).gameObject.SetActive (false);
@@ -134,11 +143,37 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			}
 			return name;
 		}
-
+			
 		[PunRPC]
 		public void SetPlayerRoleAndTent (string role, string tent) {
-			this.role = role;
+			// outside of the if because it's not synced by the network! Whereas the role must (because it can change!)
 			this.tent = tent;
+
+			if (photonView.isMine) {
+				this.role = role;
+				Button roleButton = _rolePanel.GetComponentInChildren<Button> ();
+				SpriteState buttonState = roleButton.spriteState;
+				Sprite roleSprite = roleSprites.Find (s => s.name == this.role);
+				if (roleSprite != null) {
+					buttonState.pressedSprite = roleSprite;
+					roleButton.spriteState = buttonState;
+					SetTextForRole (role);
+				} else
+					Debug.Log ("No image was found for " + this.role);
+			}
+		}
+
+		void SetTextForRole(string role) {
+			string roleText = "";
+			if (!isAlive) {
+				role = "Dead";
+				roleText = "\nYou can still hear but not talk to the others. Either leave the game or wait until a Witch revives you.";
+			} else if (role == "Villager")
+				roleText = "\nYour aim is to eliminate all Werewolves from the game. The only way to achieve that is to vote against a player during the day.";
+			else if (role == "Werewolf")
+				roleText = "\nYour aim is to eliminate all Villagers from the game. To achieve this, you can vote one more time against a player, at night.";
+			
+			_rolePanel.GetChild(0).GetComponentInChildren<Text> ().text = role + roleText;
 		}
 
 

@@ -46,17 +46,6 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			ChatManager.RoomName = PhotonNetwork.room.Name;
 
 			_whoReady = readyPanel.GetChild(2).GetComponentInChildren<Text>();
-
-			int numberOfSpawn = PhotonNetwork.room.MaxPlayers;
-			int rankOfPlayer = PhotonNetwork.player.ID;
-			float angle = (rankOfPlayer * 2f * Mathf.PI / numberOfSpawn); // get the angle for this step (in radians, not degrees)
-			float x = Mathf.Cos(angle) * rankOfPlayer* 6f;
-			float z = Mathf.Sin(angle) * rankOfPlayer * 6f;
-			Vector3 positionOnCircle = new Vector3(x, 3f, z);
-			positionOnCircle += fireCamp.position; 
-			GameObject player = PhotonNetwork.Instantiate ("Player", positionOnCircle, Quaternion.identity, 0);
-			player.transform.LookAt (fireCamp.position);
-			player.transform.rotation = new Quaternion (0, player.transform.rotation.y, 0, player.transform.rotation.z);	
 		}
 
 		// Update is called once per frame
@@ -66,10 +55,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
 			foreach (GameObject player in players) {
-				if (player.GetComponent<PlayerManager> ().isReady) {
-					DontDestroyOnLoad (player);
-					nbReady++;	
-				}
+				DontDestroyOnLoad (player);
+				if (player.GetComponent<PlayerManager> ().isReady)					
+					nbReady++;
 			}
 
 			if (PhotonNetwork.inRoom)
@@ -81,6 +69,27 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				PhotonNetwork.room.IsOpen = false;
 				PhotonNetwork.room.IsVisible = false;
 				PhotonNetwork.LoadLevel ("Main");
+			}
+		}
+
+		void LateUpdate () {
+			if (PlayerManager.LocalPlayerInstance == null) {
+				int playerRank = 0;
+				float angle, x, z;
+				do {
+					playerRank++;
+					angle = (playerRank * 2f * Mathf.PI / PhotonNetwork.room.MaxPlayers); // get the angle for this step (in radians, not degrees)
+					x = Mathf.Cos (angle) * 6f;
+					z = Mathf.Sin (angle) * 6f;
+				} while(CheckPlayerPosition(x, z));
+
+				Vector3 positionOnCircle = new Vector3(x, 3f, z);
+				positionOnCircle += fireCamp.position; 
+				GameObject player = PhotonNetwork.Instantiate ("Player", positionOnCircle, Quaternion.identity, 0);
+				player.transform.LookAt (-fireCamp.position);
+				player.transform.rotation = new Quaternion (0, player.transform.rotation.y, 0, player.transform.rotation.w);	
+
+				PlayerManager.LocalPlayerInstance = player;
 			}
 		}
 
@@ -120,6 +129,15 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			}
 
 			pM.isReady = !(pM.isReady);
+		}
+
+		bool CheckPlayerPosition(float x, float z) {
+			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
+			foreach (GameObject player in players) {
+				if (Mathf.Approximately (player.transform.position.x, x) && Mathf.Approximately (player.transform.position.z, z))
+					return true;
+			}
+			return false;
 		}
 
 

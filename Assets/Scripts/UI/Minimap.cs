@@ -76,12 +76,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// <summary>
 		/// Remove the image from the minimap and from the list of minimap objects.
 		/// </summary>
-		public void RemoveMinimapObject (GameObject owner) {
-			MinimapObject mO = objects.Find (o => o.Owner == owner);
-			if (mO != null)
-				Destroy (mO.Icon);
-			else
-				Debug.Log ("Error: the minimap object for " + owner.name + " has not been found!");
+		public void RemoveMinimapObject (MinimapObject mO) {
+			Destroy (mO.Icon);
 			objects.Remove(mO);
 		}
 
@@ -100,15 +96,19 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// Calculate position of other players from your localPlayer and put the dot in the right place. If the player turn it simply pivot around the center of the minimap
 		/// </summary>
 		void DrawMinimapDots () {
-			foreach (MinimapObject obj in objects) {
-				Transform playerPos = PlayerManager.LocalPlayerInstance.transform;
-				Vector3 minimapPos = (obj.Owner.transform.position - playerPos.position);
-				float distToObject = Vector3.Distance (playerPos.position, obj.Owner.transform.position) * mapScale;
-				float deltaY = Mathf.Atan2 (minimapPos.x, minimapPos.z) * Mathf.Rad2Deg - 270 - playerPos.eulerAngles.y;
-				minimapPos.x = distToObject * Mathf.Cos (deltaY * Mathf.Deg2Rad) * -1;
-				minimapPos.z = distToObject * Mathf.Sin (deltaY * Mathf.Deg2Rad);
+			for (int i = 0; i < objects.Count; i++) {
+				MinimapObject obj = objects [i];
+				if (obj.Owner != null) {
+					Transform playerPos = PlayerManager.LocalPlayerInstance.transform;
+					Vector3 minimapPos = (obj.Owner.transform.position - playerPos.position);
+					float distToObject = Vector3.Distance (playerPos.position, obj.Owner.transform.position) * mapScale;
+					float deltaY = Mathf.Atan2 (minimapPos.x, minimapPos.z) * Mathf.Rad2Deg - 270 - playerPos.eulerAngles.y;
+					minimapPos.x = distToObject * Mathf.Cos (deltaY * Mathf.Deg2Rad) * -1;
+					minimapPos.z = distToObject * Mathf.Sin (deltaY * Mathf.Deg2Rad);
 
-				obj.Icon.transform.position = new Vector3 (minimapPos.x, minimapPos.z, 0) + transform.position;
+					obj.Icon.transform.position = new Vector3 (minimapPos.x, minimapPos.z, 0) + transform.position;
+				} else
+					Minimap.Instance.RemoveMinimapObject (obj);
 			}
 		}
 

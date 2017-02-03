@@ -207,7 +207,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		void IChatClientListener.OnUnsubscribed (string[] channels)
 		{
 			if (channels.Length == 1) {
-				chatMessages.text = "Welcome to the in-game Chat. Have fun playing!\n------------------------------------------\n[You left the " + GetChannelName(channels[0]) + " channel]\n";
+				chatMessages.text = "Welcome to the in-game Chat. Have fun playing!\n------------------------------------------\n";
 			} else
 				Debug.Log ("Oops, seems there is more than one channel!");
 		}
@@ -221,7 +221,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			}
 
 			if (chatMessages != null)
-				chatMessages.transform.parent.parent.GetChild (1).GetComponent<Scrollbar> ().value = 0;
+				chatMessages.transform.parent.GetComponent<ScrollRect> ().verticalNormalizedPosition = 1;
 		}
 
 		void IChatClientListener.OnDisconnected ()

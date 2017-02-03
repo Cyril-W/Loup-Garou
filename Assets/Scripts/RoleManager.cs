@@ -23,15 +23,24 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region MonoBehaviour CallBacks
 
 
-		void Awake () {	
-		}
-
 		void Start () {
 			if (PhotonNetwork.isMasterClient) {
+				List<int> indexOfWerewolves = new List<int>();
+				for(int j = 0; j <= Mathf.RoundToInt(PhotonNetwork.room.PlayerCount / 3) - 1; j++) {
+					int randInt = Random.Range (0, PhotonNetwork.room.PlayerCount);
+					while(indexOfWerewolves.Contains (randInt))
+						randInt = Random.Range (0, PhotonNetwork.room.PlayerCount);
+					indexOfWerewolves.Add (randInt);
+				}
+
 				GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
 				for (int i = 0; i < players.Length; i++) {
-					
-					players [i].GetComponent<PhotonView>().RPC("SetPlayerRoleAndTent", PhotonTargets.All, new object[] { "villager", tents.GetChild(i).name });
+					string role;
+					if (indexOfWerewolves.Contains (i))
+						role = "Werewolf";
+					else
+						role = "Villager";					
+					players [i].GetComponent<PhotonView> ().RPC("SetPlayerRoleAndTent", PhotonTargets.All, new object[] { role, tents.GetChild(i).name });
 				}
 			}
 		}
@@ -40,14 +49,17 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		
 		// Update is called once per frame
 		void Update () {
-			Text text = GetComponentInChildren<Text> ();
-			text.text = "Here are all the roles:\n~~~~~~~~~~~~~~~~\n";
+			Text infoText = GetComponentInChildren<Text> ();
+			infoText.text = "Here's the state of the village:\n~~~~~~~~~~~~~~~~\n";
 
 			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
 			foreach (GameObject player in players) {
 				PlayerManager pM = player.GetComponent<PlayerManager> ();
-				pM.role = "villager";
-				text.text += PlayerManager.GetProperName(player.name) + ": " + pM.role + "\n";
+				infoText.text += PlayerManager.GetProperName (player.name);
+				if (pM.isAlive)
+					infoText.text += "[Alive] > Unknown\n";
+				else
+					infoText.text += "[Dead] > " + pM.role + "\n";
 			}
 		}
 
