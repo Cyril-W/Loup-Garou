@@ -166,9 +166,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				transform.GetChild(1).gameObject.SetActive (true);
 
 				// #Critical we need at this point to attempt joining an existing and named Room. If it fails, we'll get notified in OnPhotonRandomJoinFailed() and we'll create one.
-				RoomOptions roomOptions = new RoomOptions ();
-				roomOptions.IsVisible = false;
-				PhotonNetwork.JoinOrCreateRoom (roomName, roomOptions, TypedLobby.Default);
+				PhotonNetwork.JoinOrCreateRoom (roomName, new RoomOptions() { IsVisible = false, MaxPlayers = MaxPlayersPerRoom }, null);
 			}
 		}
 

@@ -30,7 +30,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 			targetHeight = targetCenter.y + height;
 
-			if (Input.GetButton ("Fire1") && !isSnapping) {
+			if (!isSnapping) {
 				velocity = Vector3.zero;
 				isSnapping = true;
 			}
@@ -49,8 +49,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				Apply (null, Vector3.zero);
 
 			if (Input.GetAxis ("Mouse ScrollWheel") != 0) {
-				distance = Mathf.Clamp (distance - Input.GetAxis ("Mouse ScrollWheel") * 4, 0.5f, 10.0f);
-				height = Mathf.Clamp (height + Input.GetAxis ("Mouse ScrollWheel") * 2, 1.0f, 5.0f);
+				distance = Mathf.Clamp (distance - Input.GetAxis ("Mouse ScrollWheel") * 4, 2f, 10.0f);
+				//height = Mathf.Clamp (height + Input.GetAxis ("Mouse ScrollWheel") * 2, 1.0f, 5.0f);
 			}
 		}
 

@@ -6,7 +6,6 @@ using System.Collections.Generic;
 namespace Com.Cyril_WIRTZ.Loup_Garou
 {
 	public class DayNightCycle : Photon.PunBehaviour, IPunObservable {
-
 		#region Public Variables
 
 
@@ -16,14 +15,15 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		public float moonScale = 15.0f;
 
 		[Tooltip("Enter a number of seconds to set the duration of a day")]
-		public float secondsInDay = 60.0f;
+		public static float secondsInDay = 300.0f;
 		[Tooltip("Enter a number of seconds to set the duration of a night")]
-		public float secondsInNight = 30.0f;
+		public static float secondsInNight = 180.0f;
 		[Range(0,1)]
 		public static float currentTime = 0.0f;
 
 
 		#endregion
+
 
 		#region Private Variables
 
@@ -36,6 +36,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		#endregion
 	    
+
 		#region MonoBehaviour CallBacks
 
 
@@ -67,6 +68,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 
 		#endregion
+
 
 		#region Custom
 
@@ -143,6 +145,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		#endregion
 
+
 		#region IPunObservable implementation
 
 		void IPunObservable.OnPhotonSerializeView (PhotonStream stream, PhotonMessageInfo info)
@@ -156,6 +159,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				DayNightCycle.currentTime = (float)stream.ReceiveNext();
 			}
 		}
+
 
 		#endregion
 	}

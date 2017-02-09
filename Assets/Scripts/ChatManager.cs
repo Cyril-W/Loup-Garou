@@ -18,6 +18,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		public static string ChannelName { get; set; }
 		public static string RoomName { get; set; }
 
+		public static ChatManager Instance;
 		public static List<string> playersConnected;
 
 		[Tooltip("Up to a certain degree, previously sent messages can be fetched for context")]
@@ -35,6 +36,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		// Use this for initialization
 		void Start () {
+			Instance = this;
 			_previousScene = 0;
 
 			DontDestroyOnLoad (gameObject);
@@ -77,6 +79,21 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region Custom
 
 
+		public void SwitchVillagerToWerewolf (bool isWerewolf) {
+			if (ChannelName == "villager#" + RoomName) {
+				ChannelName = "werewolf#" + RoomName;
+				if (isWerewolf)					
+					chatClient.Subscribe (new string[] { ChannelName }, HistoryLengthToFetch);				
+				chatClient.Unsubscribe (new string[] { "villager#" + RoomName });
+			} 
+			else if (ChannelName == "werewolf#" + RoomName) {
+				ChannelName = "villager#" + RoomName;
+				chatClient.Subscribe (new string[] { ChannelName }, HistoryLengthToFetch);
+				if(isWerewolf)
+					chatClient.Unsubscribe (new string[] { "werewolf#" + RoomName });
+			}
+		}
+
 		void OnSceneLoaded(Scene scene, LoadSceneMode mode) {
 			ChangeChannel (_previousScene, scene.buildIndex);
 			_previousScene = scene.buildIndex;
@@ -92,11 +109,11 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				chatClient.Subscribe (new string[] { ChannelName }, HistoryLengthToFetch);
 
 				if (formerSceneIndex == 1) { //from Lobby	
-					chatClient.PublishMessage ("lobby#" + RoomName, "left the lobby channel");
+					chatClient.PublishMessage ("lobby#" + RoomName, "left.");
 					chatClient.Unsubscribe (new string[] { "lobby#" + RoomName });
 				} 
 				else if (formerSceneIndex == 2) { //from Main
-					chatClient.PublishMessage ("villager#" + RoomName, "left the villager channel");
+					chatClient.PublishMessage ("villager#" + RoomName, "left.");
 					chatClient.Unsubscribe (new string[] { "villager#" + RoomName });
 				} 
 			} 
@@ -105,7 +122,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				chatClient.Subscribe (new string[] { ChannelName }, HistoryLengthToFetch);
 
 				if (formerSceneIndex == 0) { //from Launcher	
-					chatClient.PublishMessage ("global#", "left the global channel");
+					chatClient.PublishMessage ("global#", "left.");
 					chatClient.Unsubscribe (new string[] { "global#" });
 				} 
 				else if (formerSceneIndex == 2) { //from Main
@@ -117,7 +134,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				chatClient.Subscribe (new string[] { ChannelName }, HistoryLengthToFetch);
 
 				if (formerSceneIndex == 1) { //from Lobby	
-					chatClient.PublishMessage ("lobby#" + RoomName, "left the lobby channel");
+					chatClient.PublishMessage ("lobby#" + RoomName, "left.");
 					chatClient.Unsubscribe (new string[] { "lobby#" + RoomName });
 				} 
 				else if (formerSceneIndex == 0) { //from Launcher
@@ -132,13 +149,13 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			if (chatClient != null) {
 				if (SceneManagerHelper.ActiveSceneBuildIndex == 0) {
 					Debug.Log ("You left the game on global channel");
-					chatClient.PublishMessage ("global#", "left the game");
+					chatClient.PublishMessage ("global#", "left the game.");
 				} else if (SceneManagerHelper.ActiveSceneBuildIndex == 1) {
 					Debug.Log ("You left the game on lobby channel");
-					chatClient.PublishMessage ("lobby#" + RoomName, "left the game");
+					chatClient.PublishMessage ("lobby#" + RoomName, "left the game.");
 				} else if (SceneManagerHelper.ActiveSceneBuildIndex == 2) {
 					Debug.Log ("You left the game on villager channel");
-					chatClient.PublishMessage ("villager#" + RoomName, "left the game");
+					chatClient.PublishMessage ("villager#" + RoomName, "left the game.");
 				}
 
 				chatClient.Disconnect ();
@@ -167,7 +184,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			}
 		}
 
-		void SendChatMessage(string inputLine)
+		public void SendChatMessage(string inputLine)
 		{
 			if (string.IsNullOrEmpty(inputLine))
 				return;
@@ -199,7 +216,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		void IChatClientListener.OnSubscribed(string[] channels, bool[] results) {
 			if (channels.Length == 1)
-				chatClient.PublishMessage (channels [0], "joined the " + GetChannelName(channels [0]) + " channel");
+				chatClient.PublishMessage (channels [0], "joined.");
 			else
 				Debug.Log ("Oops, seems there is more than one channel!");
 		}
@@ -214,14 +231,14 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		void IChatClientListener.OnGetMessages(string channelName, string[] senders, object[] messages) {
 			for (int i = 0; i < messages.Length; i++) {
-				if (chatMessages != null)
-					chatMessages.text += "[" + GetChannelName (channelName) + "] " + PlayerManager.GetProperName(senders [i]) + " > " + messages [i] + "\n";
-				else
+				if (chatMessages != null) {
+					Canvas.ForceUpdateCanvases ();
+					chatMessages.transform.parent.GetComponent<ScrollRect>().verticalNormalizedPosition = 0f;
+					Canvas.ForceUpdateCanvases ();
+					chatMessages.text += "[" + GetChannelName (channelName) + "] " + PlayerManager.GetProperName (senders [i]) + " > " + messages [i] + "\n";
+				} else
 					Debug.Log ("Oops, seems there is nothing to contain the message!");
 			}
-
-			if (chatMessages != null)
-				chatMessages.transform.parent.GetComponent<ScrollRect> ().verticalNormalizedPosition = 1;
 		}
 
 		void IChatClientListener.OnDisconnected ()

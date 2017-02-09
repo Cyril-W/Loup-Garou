@@ -23,7 +23,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		[Tooltip("The center of the world around which players are spawned")]
 		public Transform fireCamp;
 		[Tooltip("The number of people you need to gather before starting to play")]
-		public int nbReadyNeeded = 3;
+		public int nbReadyNeeded;
 
 
 		#endregion
@@ -43,9 +43,11 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		// Use this for initialization
 		void Start () {
+			nbReadyNeeded = 3;
+
 			ChatManager.RoomName = PhotonNetwork.room.Name;
 
-			_whoReady = readyPanel.GetChild(2).GetComponentInChildren<Text>();
+			_whoReady = readyPanel.GetChild(2).GetComponent<Text>();
 		}
 
 		// Update is called once per frame
@@ -56,12 +58,17 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
 			foreach (GameObject player in players) {
 				DontDestroyOnLoad (player);
-				if (player.GetComponent<PlayerManager> ().isReady)					
+				if (player.GetComponent<PlayerManager> ().role == "Ready")					
 					nbReady++;
 			}
 
-			if (PhotonNetwork.inRoom)
-				_whoReady.text = nbReady + " / " + PhotonNetwork.room.PlayerCount;
+			if (PhotonNetwork.inRoom) {
+				_whoReady.text = nbReady + " / ";
+				if (PhotonNetwork.room.PlayerCount >= nbReadyNeeded)
+					_whoReady.text += PhotonNetwork.room.PlayerCount;
+				else
+					_whoReady.text += nbReadyNeeded;
+			}
 	
 			if (PhotonNetwork.isMasterClient && nbReady >= nbReadyNeeded && nbReady == PhotonNetwork.room.PlayerCount) {			
 				//We lock the room and start the game!
@@ -73,7 +80,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		}
 
 		void LateUpdate () {
-			if (PlayerManager.LocalPlayerInstance == null) {
+			if (PhotonNetwork.inRoom && PlayerManager.LocalPlayerInstance == null) {
 				int playerRank = 0;
 				float angle, x, z;
 				do {
@@ -110,7 +117,6 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		public void LeaveRoom()
 		{
-			PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager>().isReady = false;
 			PhotonNetwork.LeaveRoom();
 		}
 
@@ -118,17 +124,19 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			Button readyButton = readyPanel.GetChild (1).GetComponentInChildren<Button> ();
 			PlayerManager pM = PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ();
 
-			if (pM.isReady) {
+			if (pM.role == "Ready") {
 				readyButton.image.sprite = notReadySprite;
 				readyButton.image.color = Color.red;
 				readyButton.GetComponentInChildren<Text> ().text = "No > Yes";
-			} else {
+				readyPanel.transform.parent.GetChild (0).gameObject.SetActive (true);
+				pM.role = "";
+			} else if (pM.role == "") {
 				readyButton.image.sprite = readySprite;
 				readyButton.image.color = Color.green;
 				readyButton.GetComponentInChildren<Text> ().text = "Yes > No";
+				readyPanel.transform.parent.GetChild (0).gameObject.SetActive (false);
+				pM.role = "Ready";
 			}
-
-			pM.isReady = !(pM.isReady);
 		}
 
 		bool CheckPlayerPosition(float x, float z) {

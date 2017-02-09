@@ -8,7 +8,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 {
 	/// <summary>
 	/// PlayerButton. 
-	/// Is used to link a button with a PlayerID.
+	/// Is used to link a button with a Player Name.
 	/// </summary>
 	public class PlayerButton {
 		public Button Button { get; set; }
@@ -17,19 +17,21 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 	/// <summary>
 	/// Vote manager. 
-	/// Handles voting time (when to show the panel), and vote from the localPlayer, which is synced by Photon.
+	/// Handles voting time (when to instantiante a vote canvas).
 	/// </summary>
-	public class VoteManager : Photon.PunBehaviour {
+	public class VoteManager : Photon.PunBehaviour, IPunObservable {
 		#region Public Variables
 
 
-		[Tooltip("The panel used for voting against player")]
-		public GameObject votePanel;
-		[Tooltip("The Prefab used to populate the player list")]
-		public Button voteButton;
-		[Tooltip("The Text used to display who voted against you")]
-		public Text whoVoted;
+		[Tooltip("The Prefab used to set a new single vote")]
+		public GameObject voteCanvas;
+		[Tooltip("The name of the current Mayor of the Village")]
+		public string mayorName;
 
+		public int countDay = 1;
+		public int countNight = 0;
+
+		public static List<SingleVoteManager> votes = new List<SingleVoteManager>();
 		public static VoteManager Instance;
 
 
@@ -39,10 +41,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region Private Variables
 
 
-		static List<PlayerButton> playerButtons = new List<PlayerButton> ();
+		PlayerManager _localPM;
+		bool _isOnVillagerChannel = true;
 		static List<string> _votedPlayers;
-		static bool _hasVoted = false;
-		static bool _voteChecked = false;
 
 
 		#endregion
@@ -54,73 +55,91 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		// Use this for initialization
 		void Start () {
 			Instance = this;
-			whoVoted.text = "";
-
-			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
-			foreach (GameObject player in players) {
-				if(player.name != PhotonNetwork.player.NickName)
-					RegisterPlayerForVote (player.name);
-			}
+			_localPM = PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ();
 			_votedPlayers = new List<string> ();
-			votePanel.SetActive (false);
 		}
 		
 		// Update is called once per frame
-		void Update () {	
-			PlayerManager player = PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ();
-			RefreshVotedPlayer (ref _votedPlayers);
+		void Update () {
+			if (RoleManager.gameFinished == true)
+				return;
+			
+			RefreshVotedPlayers (ref _votedPlayers);
 
-			if (DayNightCycle.currentTime >= 0.25f && DayNightCycle.currentTime < 0.375f) {
-				whoVoted.transform.parent.gameObject.SetActive (true);
-				_voteChecked = false;
-				if(player.isAlive)
-					votePanel.SetActive (!_hasVoted);
-			} else if (DayNightCycle.currentTime >= 0.375f && DayNightCycle.currentTime < 0.75f) {
-				RefreshPlayerList ();
-				votePanel.SetActive (false);
-				_hasVoted = false;
-				player.votedPlayer = "";
-
-				// we just do this once, using a flag
-				if (!_voteChecked) {
-					bool isAlive = CheckVote ();
-					_voteChecked = true;
-					_hasVoted = false;
-					if (!isAlive) {
-						player.isAlive = false;
-						votePanel.SetActive (false);
-						GetComponent<VoteManager> ().enabled = false;
-					}
+			if (0f < DayNightCycle.currentTime && DayNightCycle.currentTime < 0.25f) {
+				if (!_isOnVillagerChannel) {
+					_localPM.votedPlayer = "";
+					countDay++;
+					_isOnVillagerChannel = !_isOnVillagerChannel;
+					if(!_localPM.isAlive || _localPM.role == "Werewolf")
+						ChatManager.Instance.SwitchVillagerToWerewolf (true);		
+					else
+						ChatManager.Instance.SwitchVillagerToWerewolf (false);			
 				}
-			} else if (DayNightCycle.currentTime >= 0.75f && DayNightCycle.currentTime < 0.875f) {
-				whoVoted.transform.parent.gameObject.SetActive (false);
-				_voteChecked = false;
-				if(player.role == "Werewolf" && player.isAlive)
-					votePanel.SetActive (!_hasVoted);
-			} else {
-				RefreshPlayerList ();
-				votePanel.SetActive (false);
-				_hasVoted = false;
-				player.votedPlayer = "";
-
-				// we just do this once, using a flag
-				if (!_voteChecked) {
-					bool isAlive = CheckVote ();
-					_voteChecked = true;
-					_hasVoted = false;
-					if (!isAlive) {
-						player.isAlive = false;
-						votePanel.SetActive (false);
-						whoVoted.transform.parent.gameObject.SetActive (true);
-						GetComponent<VoteManager> ().enabled = false;
+			} else if (0.25f < DayNightCycle.currentTime && DayNightCycle.currentTime < 0.375f) {
+				if (votes.Find (v => v.isOneShot == false) == null) {
+					SingleVoteManager svM = Instantiate (voteCanvas).GetComponent<SingleVoteManager> ();
+					svM.secondsToVote = DayNightCycle.secondsInDay / 4;
+					if (countDay == 1) {
+						svM.title.text = "Mayor election";
+						svM.description.text = "Day 1:\nIt's high noon! Elect your new Mayor by simply clicking on the player you think the most apt to represents the Village.";
+					} else {
+						CheckOrSetMayor ();
+						svM.title.text = "Villager vote";
+						svM.description.text = "Day " + countDay + ":\nThis usual vote is set to select the next victim to be executed. Let us hope it is a Werewolf...";
 					}
+					votes.Add (svM);
+				}
+			} else if (0.375f < DayNightCycle.currentTime && DayNightCycle.currentTime < 0.5f) {
+				SingleVoteManager svM = votes.Find (v => v.isOneShot == false);
+				if (svM != null) {
+					if (countDay == 1) {
+						if (PhotonNetwork.isMasterClient)
+							mayorName = CheckPlayerMostVoted ();
+						if(mayorName == "")
+							CheckOrSetMayor ();
+					}
+					else if (_localPM.gameObject.name == CheckPlayerMostVoted())		
+						_localPM.isAlive = false;					
+					Destroy (svM.gameObject);
+					votes.Remove (svM);
+				}
+			} else if (0.5f < DayNightCycle.currentTime && DayNightCycle.currentTime < 0.75f) {
+				if (_isOnVillagerChannel) {
+					_localPM.votedPlayer = "";
+					countNight++;
+					_isOnVillagerChannel = !_isOnVillagerChannel;
+					if( !_localPM.isAlive || _localPM.role == "Werewolf")
+						ChatManager.Instance.SwitchVillagerToWerewolf (true);		
+					else
+						ChatManager.Instance.SwitchVillagerToWerewolf (false);	
+				}
+			}else if (0.75f < DayNightCycle.currentTime && DayNightCycle.currentTime < 0.875f) {
+				if (votes.Find (v => v.isOneShot == false) == null) {
+					SingleVoteManager svM = Instantiate (voteCanvas).GetComponent<SingleVoteManager> ();
+					if (_localPM.role != "Werewolf")
+						svM.secondsToVote = 0;
+					else
+						svM.secondsToVote = DayNightCycle.secondsInNight/4;
+					svM.title.text = "Werewolf vote";
+					svM.description.text = "Night " + countNight + ":\nThis usual vote is set to select the next victim to be executed. Kill them all!";
+					votes.Add (svM);
+				}
+			}else if (0.875f < DayNightCycle.currentTime && DayNightCycle.currentTime < 1f) {
+				SingleVoteManager svM = votes.Find (v => v.isOneShot == false);
+				if (svM != null) {
+					if (_localPM.gameObject.name == CheckPlayerMostVoted())	
+						_localPM.isAlive = false;
+					Destroy (svM.gameObject);
+					votes.Remove (svM);
 				}
 			}
 		}
 
 		public void OnApplicationQuit() 
 		{
-			VoteManager.RemovePlayerForVote (PlayerManager.LocalPlayerInstance.name);
+			foreach (SingleVoteManager svM in votes)
+				svM.RemovePlayerForVote (PlayerManager.LocalPlayerInstance.name);
 		}
 
 		/// <summary>
@@ -131,6 +150,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			SceneManager.LoadScene(0);
 		}
 
+
 		#endregion
 
 
@@ -139,15 +159,81 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		public void LeaveRoom()
 		{
-			VoteManager.RemovePlayerForVote (PhotonNetwork.player.NickName);
+			foreach (SingleVoteManager svM in votes)
+				svM.RemovePlayerForVote (PhotonNetwork.player.NickName);
 			PhotonNetwork.LeaveRoom();
+		}
+
+		/// <summary>
+		/// Starts a vote specific to the local player, for example when the Mayor or the Hunter dies.
+		/// </summary>
+		public void StartOneShotVote (string reason)
+		{			
+			if (reason == "Mayor") {
+				if (votes.Find (v => (v.isOneShot == true && v.title.text == "Successor vote")) == null) {
+					SingleVoteManager svM = Instantiate (voteCanvas).GetComponent<SingleVoteManager> ();
+					svM.isOneShot = true;
+					svM.title.text = "Successor vote";
+					svM.description.text = "Elect your successor:\nYou have few seconds to name the next Mayor of the Village. If you don't seize this opportunity, a new Mayor will be randomly elected.";
+					votes.Add (svM);
+
+					if (RoleManager.nbPlayerAlive <= 1)
+						svM.secondsToVote = 0;
+				} 
+			}else if (reason == "Hunter") {
+				if (votes.Find (v => (v.isOneShot == true && v.title.text == "Vendetta vote")) == null) {
+					SingleVoteManager svM = Instantiate (voteCanvas).GetComponent<SingleVoteManager> ();
+					svM.isOneShot = true;
+					svM.title.text = "Vendetta vote";
+					svM.description.text = "One name, one dead:\nYou have been killed. You now have few seconds to name the victime of your riffle. If you don't seize this occasion, nobody will die.";
+					votes.Add (svM);
+
+					if (RoleManager.nbPlayerAlive <= 1)
+						svM.secondsToVote = 0;
+				}
+			} else
+				Debug.Log ("Reason unknown, or vote already started!");
+		}
+
+		/// <summary>
+		/// Seeks the vote of the local player, checks if he voted against and acts accordingly.
+		/// </summary>
+		[PunRPC]
+		public void AnalyzeOneShotResult (SingleVoteManager svM, string voter, string voted) {
+			PlayerManager voterPM = null;
+			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
+			foreach (GameObject player in players) {
+				if (player.name == voter)
+					voterPM = player.GetComponent<PlayerManager> ();
+			}
+			if (voterPM != null) {			
+				GameObject votedPlayer = null;
+				foreach (GameObject player in players) {
+					if (player.name == voted)
+						votedPlayer = player;					
+				}
+				if (votedPlayer != null) {
+					if (voter == mayorName) {
+						if (voted == "")
+							CheckOrSetMayor ();
+						else
+							this.mayorName = voted;						
+					} else if (voterPM.role == "Hunter") {
+						// votedPM.isAlive = false;
+					}
+				}
+			}
+
+			Destroy(svM.gameObject);
+			votes.Remove (svM);
 		}
 
 		/// <summary>
 		/// Searches through all the players, checks if they voted against you and updates the people who were voted against.
 		/// </summary>
-		void RefreshVotedPlayer(ref List<string> votedPlayers) {
-			VoteManager.Instance.whoVoted.text = "";
+		void RefreshVotedPlayers(ref List<string> votedPlayers) {
+			Text displayText = GetComponentInChildren<Text> ();
+			displayText.text = "~ Mayor: " + PlayerManager.GetProperName(mayorName) + " ~\nHere are all the vote:\n~~~~~~~~~~~~~~\n";
 			votedPlayers.Clear ();
 
 			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
@@ -155,19 +241,20 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				PlayerManager pM = player.GetComponent<PlayerManager> ();
 				if (pM.votedPlayer != "") {
 					votedPlayers.Add (pM.votedPlayer);
-					if (pM.votedPlayer == PlayerManager.LocalPlayerInstance.name)
-						VoteManager.Instance.whoVoted.text += "~ " + PlayerManager.GetProperName(player.name) + "\n";
+					if (DayNightCycle.currentTime >= 0f && DayNightCycle.currentTime < 0.5f && player.name == mayorName)
+						votedPlayers.Add (pM.votedPlayer);
 				}
+				displayText.text += PlayerManager.GetProperName (player.name) + " > " + PlayerManager.GetProperName(pM.votedPlayer) + "\n";
 			}
 		}
 
 		/// <summary>
-		/// Searches through all the voted player list, if one has stricly more votes than the other, he's eliminated.
-		/// If 2 or more players have the same number of vote, no one is eliminated.
+		/// Searches through all the voted player list: if the local player has stricly more votes than the others, he's eliminated.
+		/// If 2 or more players have the same number of vote, no one is eliminated (but the mayor makes it impossible).
 		/// </summary>
-		bool CheckVote() {
+		string CheckPlayerMostVoted() {
 			if (_votedPlayers.Count == 0)
-				return true;
+				return "";
 			else {
 				int previousCount = _votedPlayers.FindAll (p => p == _votedPlayers [0]).Count;
 				List<string> mostVotedPlayers = new List<string> ();
@@ -179,69 +266,62 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 						mostVotedPlayers.Remove (_votedPlayers [i - 1]);
 						mostVotedPlayers.Add (_votedPlayers [i]);
 						previousCount = newCount;
-					} else if (newCount == previousCount && _votedPlayers [i - 1] != _votedPlayers [i])
+					} else if (newCount == previousCount && !mostVotedPlayers.Contains(_votedPlayers [i]))
 						mostVotedPlayers.Add (_votedPlayers [i]);
 				}
 					
 				if (mostVotedPlayers.Count > 1)
-					return true;
-				else if (mostVotedPlayers [0] != PlayerManager.LocalPlayerInstance.name)
-					return true;
-				else 
-					return false;
+					return "";
+				else
+					return mostVotedPlayers [0];
 			}
 		}
 
-		public static void OnClicked(string playerClicked) {
-			PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ().votedPlayer = playerClicked;
-
-			_hasVoted = true;
-		}
-
-		public void OnSkipVote() {
-			_hasVoted = true;
-		}
-
 		/// <summary>
-		/// Add a button linked to the player photonID and add listener on it.
+		/// Searches through all the player list: if no one has has been elected, a random mayor is elected.
 		/// </summary>
-		public static void RegisterPlayerForVote (string playerName) {
-			Button btn = Instantiate (VoteManager.Instance.voteButton);
-			btn.GetComponentInChildren<Text> ().text = PlayerManager.GetProperName(playerName);
-			btn.transform.SetParent (VoteManager.Instance.votePanel.transform.GetChild(1).GetChild(0));
-			btn.onClick.AddListener (delegate { VoteManager.OnClicked (playerName); });
-
-			playerButtons.Add (new PlayerButton() {Button = btn, PlayerName = playerName});
-		}
-
-		/// <summary>
-		/// Remove the button linked to the player photonID.
-		/// </summary>
-		public static void RemovePlayerForVote (string playerName) {
-			PlayerButton playerButton = playerButtons.Find (p => p.PlayerName == playerName);
-			if(playerButton != null)
-				Destroy(playerButton.Button.gameObject);
-
-			playerButtons.Remove (playerButton);
-		}
-
-		/// <summary>
-		/// Updates the players that still can be voted.
-		/// </summary>
-		public static void RefreshPlayerList () {
-			foreach (PlayerButton pB in playerButtons) {
-				if(pB.Button != null)
-					Destroy (pB.Button.gameObject);
-			}
-			playerButtons.Clear ();
+		void CheckOrSetMayor () {
+			if (!PhotonNetwork.isMasterClient)
+				return;
 
 			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
-			foreach (GameObject player in players) {
-				if (player.name != PhotonNetwork.player.NickName && player.GetComponent<PlayerManager> ().isAlive)
-					RegisterPlayerForVote (player.name);
+			if (mayorName != "") {
+				foreach (GameObject player in players) {
+					if (mayorName == player.name)
+						return;
+				}
+				Debug.Log ("The Mayor name is attributed to a player that does not exist anymore!");
+				mayorName = "";
+			} 
+
+			if (mayorName == "" && RoleManager.nbPlayerAlive > 1) {
+				int randomMayor;
+				do {
+					randomMayor = Random.Range (0, players.Length);
+				} while (players [randomMayor].GetComponent<PlayerManager> ().isAlive == false);
+				Debug.Log ("No Mayor found: player n°" + randomMayor + " has been randomly elected");
+				mayorName = players [randomMayor].name;
+			} else if (RoleManager.nbPlayerAlive <= 1)
+				mayorName = "";			
+		}
+
+
+		#endregion
+
+
+		#region IPunObservable implementation
+
+
+		void IPunObservable.OnPhotonSerializeView (PhotonStream stream, PhotonMessageInfo info)
+		{
+			if (stream.isWriting)
+			{
+				// We own this player: send the others our data
+				stream.SendNext(mayorName);
+			}else{
+				// Network player, receive data
+				this.mayorName = (string)stream.ReceiveNext ();
 			}
-				
-			VoteManager.Instance.votePanel.GetComponentInChildren<ScrollRect> ().verticalNormalizedPosition = 1;
 		}
 
 
