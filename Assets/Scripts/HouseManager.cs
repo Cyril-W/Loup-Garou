@@ -76,8 +76,13 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				GameObject frontFabric = transform.GetChild (0).GetChild (3).gameObject;
 				if (0.5f < DayNightCycle.currentTime && DayNightCycle.currentTime < 1f) {
 					frontFabric.SetActive (true);
-					if(isOwner && !_ownerInside)
-						_owner.GetComponent<PlayerManager> ().isAlive = false;
+					if (isOwner) { 
+						frontFabric.GetComponent<Renderer> ().material.color = Color.red;
+						if (!_ownerInside)
+							_owner.GetComponent<PlayerManager> ().isAlive = false;
+					}
+					else 
+						frontFabric.GetComponent<Renderer> ().material.color = Color.blue;
 				} else
 					frontFabric.SetActive (false);
 			}
@@ -113,14 +118,14 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					_displayImages [1].color = Color.green;
 				} else {
 					foreach (Renderer rend in fabriks)
-						rend.material.color = Color.red;
+						rend.material.color = Color.blue;
 					mID.color = Color.blue;
 					_displayImages [1].sprite = doors [1];
 					_displayImages [1].color = Color.red;
 				}
 			} else {
 				foreach (Renderer rend in fabriks)
-					rend.material.color = Color.red;
+					rend.material.color = Color.white;
 				mID.color = Color.white;
 				_displayImages [1].sprite = doors [0];
 				_displayImages [1].color = Color.white;

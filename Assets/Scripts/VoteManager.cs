@@ -41,6 +41,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region Private Variables
 
 
+		Text _descriptionText;
 		PlayerManager _localPM;
 		bool _isOnVillagerChannel = true;
 		static List<string> _votedPlayers;
@@ -55,6 +56,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		// Use this for initialization
 		void Start () {
 			Instance = this;
+			_descriptionText = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (2).GetChild(1).GetComponentInChildren<Text> ();
 			_localPM = PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ();
 			_votedPlayers = new List<string> ();
 		}
@@ -67,6 +69,11 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			RefreshVotedPlayers (ref _votedPlayers);
 
 			if (0f < DayNightCycle.currentTime && DayNightCycle.currentTime < 0.25f) {
+				if(countDay == 1)
+					_descriptionText.text = "Wake up! Time to discuss with other villagers, the vote for the new Mayor is coming!";
+				else
+					_descriptionText.text = "Wake up! Time to discuss with other villagers, the vote for the next victim is coming!";
+
 				if (!_isOnVillagerChannel) {
 					_localPM.votedPlayer = "";
 					countDay++;
@@ -77,6 +84,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 						ChatManager.Instance.SwitchVillagerToWerewolf (false);			
 				}
 			} else if (0.25f < DayNightCycle.currentTime && DayNightCycle.currentTime < 0.375f) {
+				_descriptionText.text = "If you already voted, patience! Once the vote are all collected, results will be announced!";
+
 				if (votes.Find (v => v.isOneShot == false) == null) {
 					SingleVoteManager svM = Instantiate (voteCanvas).GetComponent<SingleVoteManager> ();
 					svM.secondsToVote = DayNightCycle.secondsInDay / 4;
@@ -91,6 +100,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					votes.Add (svM);
 				}
 			} else if (0.375f < DayNightCycle.currentTime && DayNightCycle.currentTime < 0.5f) {
+				_descriptionText.text = "Votes have all been counted! Now finish your discussions and go back to your tent, night is falling upon the Village!";
+
 				SingleVoteManager svM = votes.Find (v => v.isOneShot == false);
 				if (svM != null) {
 					if (countDay == 1) {
@@ -105,6 +116,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					votes.Remove (svM);
 				}
 			} else if (0.5f < DayNightCycle.currentTime && DayNightCycle.currentTime < 0.75f) {
+				_descriptionText.text = "If there is a Seer still alive, time for her to come out and spy on other's role!";
+
 				if (_isOnVillagerChannel) {
 					_localPM.votedPlayer = "";
 					countNight++;
@@ -115,6 +128,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 						ChatManager.Instance.SwitchVillagerToWerewolf (false);	
 				}
 			}else if (0.75f < DayNightCycle.currentTime && DayNightCycle.currentTime < 0.875f) {
+				_descriptionText.text = "Time for the Werewolf to strike down their opponent! They are silently agreeing on who to devour...";
+
 				if (votes.Find (v => v.isOneShot == false) == null) {
 					SingleVoteManager svM = Instantiate (voteCanvas).GetComponent<SingleVoteManager> ();
 					if (_localPM.role != "Werewolf")
@@ -126,6 +141,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					votes.Add (svM);
 				}
 			}else if (0.875f < DayNightCycle.currentTime && DayNightCycle.currentTime < 1f) {
+				_descriptionText.text = "Votes have all been counted! The victim of the Werewolf now lies on the ground, covered in blood!";
+
 				SingleVoteManager svM = votes.Find (v => v.isOneShot == false);
 				if (svM != null) {
 					if (_localPM.gameObject.name == CheckPlayerMostVoted())	

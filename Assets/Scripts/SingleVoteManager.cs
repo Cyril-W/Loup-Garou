@@ -51,8 +51,11 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
 			foreach (GameObject player in players) {
-				if (player != PlayerManager.LocalPlayerInstance && player.GetComponent<PlayerManager> ().isAlive)
-					RegisterPlayerForVote (player.name);
+				if (player != PlayerManager.LocalPlayerInstance) {
+					PlayerManager pM = player.GetComponent<PlayerManager> ();
+					if(pM.isAlive)
+						RegisterPlayerForVote (pM);
+				}
 			}
 
 			_votePanel.GetComponentInChildren<ScrollRect> ().verticalNormalizedPosition = 1;
@@ -117,10 +120,29 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// <summary>
 		/// Add a button linked to the player photonID and add listener on it.
 		/// </summary>
-		void RegisterPlayerForVote (string playerName) {
+		void RegisterPlayerForVote (PlayerManager pM) {
+			string playerName = pM.gameObject.name;
 			Button btn = Instantiate (voteButton).GetComponent<Button>();
+
 			btn.GetComponentInChildren<Text> ().text = PlayerManager.GetProperName(playerName);
-			btn.transform.SetParent (_votePanel.GetChild(0));
+
+			Image[] images = btn.GetComponentsInChildren<Image> ();
+			if (pM.isDiscovered) {
+				Sprite roleSprite = Resources.Load ("Cards/" + pM.role, typeof(Sprite)) as Sprite;
+				if (roleSprite != null)
+					images[1].sprite = roleSprite;
+				else
+					Debug.Log ("No image was found for " + pM.role);
+			}
+			if (VoteManager.Instance.mayorName == playerName) {
+				Sprite mayorSprite = Resources.Load ("Cards/MayorDay", typeof(Sprite)) as Sprite;
+				if (mayorSprite != null)
+					images[2].sprite = mayorSprite;
+				else
+					Debug.Log ("No image was found for Mayor");
+			}
+
+			btn.transform.SetParent (_votePanel.GetChild(0).GetChild(0));
 			btn.onClick.AddListener (delegate { OnClicked (playerName); });
 
 			playerButtons.Add (new PlayerButton() {Button = btn, PlayerName = playerName});

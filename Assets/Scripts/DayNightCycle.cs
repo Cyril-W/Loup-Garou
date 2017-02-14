@@ -31,7 +31,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		private Light sun;
 		private Transform moon;
 		private ParticleSystem stars;
-		private Image lunarClock;
+		private RectTransform pivotPoint;
+		private RectTransform translPoint;
 
 
 		#endregion
@@ -50,9 +51,12 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 	        moon.transform.localPosition = new Vector3(0, 0, moonDistance);
 	        moon.transform.localScale = new Vector3(moonScale, moonScale, moonScale);
 			stars = GetComponentInChildren<ParticleSystem> ();
-			lunarClock = GameObject.FindGameObjectWithTag ("Clock").GetComponent<Image>();
-			lunarClock.fillAmount = 0;
-	    }
+
+			pivotPoint = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild(2).GetChild(0).GetChild(0).GetComponent<RectTransform>();
+			pivotPoint.localRotation = Quaternion.Euler(0f, 0f, 360f * -currentTime);
+			translPoint = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild(2).GetChild(0).GetChild(1).GetComponent<RectTransform>();
+			translPoint.localPosition = Vector3.zero;
+		}
 
 	    // Update is called once per frame
 	    void Update()
@@ -87,19 +91,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// </summary>
 	    void UpdateClock()
 	    {
-			lunarClock.fillOrigin = (int)Image.Origin360.Top;
-
-	        if (currentTime <= 0.5)
-	        {
-				lunarClock.fillClockwise = true;
-				lunarClock.fillAmount = currentTime * 2;
-
-	        }
-	        else
-	        {
-				lunarClock.fillClockwise = false;            
-				lunarClock.fillAmount = (1 - currentTime) * 2;
-	        }
+			pivotPoint.localRotation = Quaternion.Euler(0f, 0f, 360f * -currentTime);
+			translPoint.localPosition = new Vector3(-75f + 150f * currentTime * 2, -40f, 0f);
 	    }
 
 		/// <summary>
