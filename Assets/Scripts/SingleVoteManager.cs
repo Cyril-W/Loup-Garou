@@ -18,8 +18,10 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		public Text title;
 		public Text description;
+		public Transform voteButtonGrid;
+
 		public float secondsToVote = 30f;
-		public bool isOneShot = false;
+		public string reason = "";
 
 		public List<PlayerButton> playerButtons;
 
@@ -30,7 +32,6 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region Private Variables
 
 
-		Transform _votePanel;
 		PlayerManager _localPM;
 
 
@@ -42,8 +43,6 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		// Use this for initialization
 		void Awake () {
-			_votePanel = transform.GetChild (0).GetChild (2);
-
 			_localPM = PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ();
 			_localPM.votedPlayer = "";
 
@@ -58,7 +57,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				}
 			}
 
-			_votePanel.GetComponentInChildren<ScrollRect> ().verticalNormalizedPosition = 1;
+			voteButtonGrid.transform.parent.GetComponent<ScrollRect> ().verticalNormalizedPosition = 1;
 
 			if (playerButtons.Count == 0)
 				secondsToVote = 0;
@@ -66,20 +65,16 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		// Update is called once per frame
 		void Update () {
-			_votePanel.GetChild(1).GetComponent<Text> ().text = Mathf.RoundToInt(secondsToVote).ToString();
+			transform.GetChild(0).GetChild(1).GetComponent<Text> ().text = Mathf.RoundToInt(secondsToVote).ToString();
 			secondsToVote -= Time.deltaTime;
 			if (secondsToVote <= 0f) {
 				secondsToVote = 0f;
 
 				gameObject.SetActive (false);
-				if (isOneShot)
-					VoteManager.Instance.gameObject.GetComponent<PhotonView> ().RPC ("AnalyzeOneShotResult", PhotonTargets.MasterClient, new object[] {
-						this,
-						_localPM.gameObject.name,
-						""
-					});
+				if (reason != "")
+					AnalyzeOneShotResult ("");
 			} else {
-				if(!isOneShot)
+				if(reason == "")
 					gameObject.SetActive (_localPM.isAlive);
 			}
 		}
@@ -91,14 +86,28 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region Custom
 
 
+		void AnalyzeOneShotResult(string voted) {
+			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
+			GameObject votedPlayer = null;
+			foreach (GameObject player in players) {
+				if (player.name == voted)
+					votedPlayer = player;					
+			}
+			if (votedPlayer != null) {
+				if (reason == "Mayor")
+					VoteManager.Instance.gameObject.GetComponent<PhotonView>().RPC("SetNewMayor", PhotonTargets.MasterClient, new object[] { voted });					
+				else if (reason == "Hunter")
+					votedPlayer.GetComponent<PhotonView>().RPC("KillPlayer", PhotonTargets.All, new object[] {});				
+			}
+
+			VoteManager.votes.Remove (this);
+			Destroy(gameObject);
+		}
+
 		public void OnClicked(string playerClicked) {
-			if (isOneShot) {
+			if (reason != "") {
 				gameObject.SetActive (false);
-				VoteManager.Instance.gameObject.GetComponent<PhotonView> ().RPC ("AnalyzeOneShotResult", PhotonTargets.MasterClient, new object[] {
-					this,
-					_localPM.gameObject.name,
-					playerClicked
-				});
+				AnalyzeOneShotResult (playerClicked);
 			} else {
 				PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ().votedPlayer = playerClicked;
 				secondsToVote = 0;
@@ -106,13 +115,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		}
 
 		public void OnSkipVote() {
-			if (isOneShot) {
+			if (reason != "") {
 				gameObject.SetActive (false);
-				VoteManager.Instance.gameObject.GetComponent<PhotonView> ().RPC ("AnalyzeOneShotResult", PhotonTargets.MasterClient, new object[] {
-					this,
-					_localPM.gameObject.name,
-					""
-				});
+				AnalyzeOneShotResult ("");
 			} else
 				secondsToVote = 0;			
 		}
@@ -142,7 +147,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					Debug.Log ("No image was found for Mayor");
 			}
 
-			btn.transform.SetParent (_votePanel.GetChild(0).GetChild(0));
+			btn.transform.SetParent (voteButtonGrid);
 			btn.onClick.AddListener (delegate { OnClicked (playerName); });
 
 			playerButtons.Add (new PlayerButton() {Button = btn, PlayerName = playerName});

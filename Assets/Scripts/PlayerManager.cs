@@ -100,8 +100,10 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 						foreach (GameObject player in players)
 							player.GetComponent<PlayerManager> ().isDiscovered = true;
 						votedPlayer = "";
-						if (VoteManager.Instance.mayorName == gameObject.name)
+						if (VoteManager.Instance.mayorName == gameObject.name) {
+							VoteManager.Instance.mayorName = "";
 							VoteManager.Instance.StartOneShotVote ("Mayor");
+						}
 					}
 					if (!isDiscovered)
 						isDiscovered = true;
@@ -176,6 +178,12 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				this.role = role;
 		}
 
+		[PunRPC]
+		public void KillPlayer () {
+			if (photonView.isMine)
+				this.isAlive = false;
+		}
+
 		void DisplayRole() {
 			string roleText = "";
 			Sprite roleSprite;
@@ -187,6 +195,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					roleText = role + "\nYour aim is to eliminate all Werewolves from the game. The only way to achieve that is to vote against a player during the day.";
 				else if (role == "Werewolf")
 					roleText = role + "\nYour aim is to eliminate all Villagers from the game. To achieve this, you can vote one more time against a player, at night.";
+				else if (role == "Seer")
+					roleText = role + "\nYour aim is to eliminate all Werewolves from the game. To achieve this, you can discover the role of someone each night.";
 				roleSprite = Resources.Load ("Cards/" + role, typeof(Sprite)) as Sprite;
 			}
 			_rolePanel.GetChild(0).GetComponentInChildren<Text> ().text = roleText;

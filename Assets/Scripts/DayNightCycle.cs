@@ -13,6 +13,10 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		public float moonDistance = 600.0f;
 		[Tooltip("The size of the Moon")]
 		public float moonScale = 15.0f;
+		[Tooltip("The pivot of the clock")]
+		public RectTransform pivotPoint;
+		[Tooltip("The center of sun/moon timeline")]
+		public RectTransform translPoint;
 
 		[Tooltip("Enter a number of seconds to set the duration of a day")]
 		public static float secondsInDay = 300.0f;
@@ -31,8 +35,6 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		private Light sun;
 		private Transform moon;
 		private ParticleSystem stars;
-		private RectTransform pivotPoint;
-		private RectTransform translPoint;
 
 
 		#endregion
@@ -52,10 +54,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 	        moon.transform.localScale = new Vector3(moonScale, moonScale, moonScale);
 			stars = GetComponentInChildren<ParticleSystem> ();
 
-			pivotPoint = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild(2).GetChild(0).GetChild(0).GetComponent<RectTransform>();
 			pivotPoint.localRotation = Quaternion.Euler(0f, 0f, 360f * -currentTime);
-			translPoint = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild(2).GetChild(0).GetChild(1).GetComponent<RectTransform>();
-			translPoint.localPosition = Vector3.zero;
 		}
 
 	    // Update is called once per frame

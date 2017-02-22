@@ -56,7 +56,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		// Use this for initialization
 		void Start () {
 			Instance = this;
-			_descriptionText = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (2).GetChild(1).GetComponentInChildren<Text> ();
+			_descriptionText = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (2).GetChild(0).GetComponentInChildren<Text> ();
 			_localPM = PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ();
 			_votedPlayers = new List<string> ();
 		}
@@ -69,7 +69,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			RefreshVotedPlayers (ref _votedPlayers);
 
 			if (0f < DayNightCycle.currentTime && DayNightCycle.currentTime < 0.25f) {
-				if(countDay == 1)
+				if (countDay == 1)
 					_descriptionText.text = "Wake up! Time to discuss with other villagers, the vote for the new Mayor is coming!";
 				else
 					_descriptionText.text = "Wake up! Time to discuss with other villagers, the vote for the next victim is coming!";
@@ -78,15 +78,15 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					_localPM.votedPlayer = "";
 					countDay++;
 					_isOnVillagerChannel = !_isOnVillagerChannel;
-					if(!_localPM.isAlive || _localPM.role == "Werewolf")
-						ChatManager.Instance.SwitchVillagerToWerewolf (true);		
+					if (!_localPM.isAlive || _localPM.role == "Werewolf")
+						ChatManager.Instance.SwitchVillagerToWerewolf (true);
 					else
 						ChatManager.Instance.SwitchVillagerToWerewolf (false);			
 				}
 			} else if (0.25f < DayNightCycle.currentTime && DayNightCycle.currentTime < 0.375f) {
 				_descriptionText.text = "If you already voted, patience! Once the vote are all collected, results will be announced!";
 
-				if (votes.Find (v => v.isOneShot == false) == null) {
+				if (votes.Find (v => v.reason == "") == null) {
 					SingleVoteManager svM = Instantiate (voteCanvas).GetComponent<SingleVoteManager> ();
 					svM.secondsToVote = DayNightCycle.secondsInDay / 4;
 					if (countDay == 1) {
@@ -102,35 +102,36 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			} else if (0.375f < DayNightCycle.currentTime && DayNightCycle.currentTime < 0.5f) {
 				_descriptionText.text = "Votes have all been counted! Now finish your discussions and go back to your tent, night is falling upon the Village!";
 
-				SingleVoteManager svM = votes.Find (v => v.isOneShot == false);
+				SingleVoteManager svM = votes.Find (v => v.reason == "");
 				if (svM != null) {
 					if (countDay == 1) {
 						if (PhotonNetwork.isMasterClient)
 							mayorName = CheckPlayerMostVoted ();
-						if(mayorName == "")
+						if (mayorName == "")
 							CheckOrSetMayor ();
-					}
-					else if (_localPM.gameObject.name == CheckPlayerMostVoted())		
+					} else if (_localPM.gameObject.name == CheckPlayerMostVoted ())
 						_localPM.isAlive = false;					
 					Destroy (svM.gameObject);
 					votes.Remove (svM);
 				}
-			} else if (0.5f < DayNightCycle.currentTime && DayNightCycle.currentTime < 0.75f) {
-				_descriptionText.text = "If there is a Seer still alive, time for her to come out and spy on other's role!";
+			} else if (0.5f < DayNightCycle.currentTime && DayNightCycle.currentTime < 0.625f) {
+				_descriptionText.text = "The night has just fallen, keep your eyes closed and wait until dawn!";
 
 				if (_isOnVillagerChannel) {
 					_localPM.votedPlayer = "";
 					countNight++;
 					_isOnVillagerChannel = !_isOnVillagerChannel;
-					if( !_localPM.isAlive || _localPM.role == "Werewolf")
-						ChatManager.Instance.SwitchVillagerToWerewolf (true);		
+					if (!_localPM.isAlive || _localPM.role == "Werewolf")
+						ChatManager.Instance.SwitchVillagerToWerewolf (true);
 					else
 						ChatManager.Instance.SwitchVillagerToWerewolf (false);	
 				}
+			} else if (0.625f < DayNightCycle.currentTime && DayNightCycle.currentTime < 0.75f) {
+				_descriptionText.text = "If there is a Seer still alive, time for her to come out and spy other's role!";
 			}else if (0.75f < DayNightCycle.currentTime && DayNightCycle.currentTime < 0.875f) {
 				_descriptionText.text = "Time for the Werewolf to strike down their opponent! They are silently agreeing on who to devour...";
 
-				if (votes.Find (v => v.isOneShot == false) == null) {
+				if (votes.Find (v => v.reason == "") == null) {
 					SingleVoteManager svM = Instantiate (voteCanvas).GetComponent<SingleVoteManager> ();
 					if (_localPM.role != "Werewolf")
 						svM.secondsToVote = 0;
@@ -143,7 +144,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			}else if (0.875f < DayNightCycle.currentTime && DayNightCycle.currentTime < 1f) {
 				_descriptionText.text = "Votes have all been counted! The victim of the Werewolf now lies on the ground, covered in blood!";
 
-				SingleVoteManager svM = votes.Find (v => v.isOneShot == false);
+				SingleVoteManager svM = votes.Find (v => v.reason == "");
 				if (svM != null) {
 					if (_localPM.gameObject.name == CheckPlayerMostVoted())	
 						_localPM.isAlive = false;
@@ -187,9 +188,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		public void StartOneShotVote (string reason)
 		{			
 			if (reason == "Mayor") {
-				if (votes.Find (v => (v.isOneShot == true && v.title.text == "Successor vote")) == null) {
+				if (votes.Find (v => v.reason == "Mayor" ) == null) {
 					SingleVoteManager svM = Instantiate (voteCanvas).GetComponent<SingleVoteManager> ();
-					svM.isOneShot = true;
+					svM.reason = "Mayor";
 					svM.title.text = "Successor vote";
 					svM.description.text = "Elect your successor:\nYou have few seconds to name the next Mayor of the Village. If you don't seize this opportunity, a new Mayor will be randomly elected.";
 					votes.Add (svM);
@@ -198,9 +199,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 						svM.secondsToVote = 0;
 				} 
 			}else if (reason == "Hunter") {
-				if (votes.Find (v => (v.isOneShot == true && v.title.text == "Vendetta vote")) == null) {
+				if (votes.Find (v => v.reason == "Hunter") == null) {
 					SingleVoteManager svM = Instantiate (voteCanvas).GetComponent<SingleVoteManager> ();
-					svM.isOneShot = true;
+					svM.reason = "Hunter";
 					svM.title.text = "Vendetta vote";
 					svM.description.text = "One name, one dead:\nYou have been killed. You now have few seconds to name the victime of your riffle. If you don't seize this occasion, nobody will die.";
 					votes.Add (svM);
@@ -212,37 +213,10 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				Debug.Log ("Reason unknown, or vote already started!");
 		}
 
-		/// <summary>
-		/// Seeks the vote of the local player, checks if he voted against and acts accordingly.
-		/// </summary>
 		[PunRPC]
-		public void AnalyzeOneShotResult (SingleVoteManager svM, string voter, string voted) {
-			PlayerManager voterPM = null;
-			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
-			foreach (GameObject player in players) {
-				if (player.name == voter)
-					voterPM = player.GetComponent<PlayerManager> ();
-			}
-			if (voterPM != null) {			
-				GameObject votedPlayer = null;
-				foreach (GameObject player in players) {
-					if (player.name == voted)
-						votedPlayer = player;					
-				}
-				if (votedPlayer != null) {
-					if (voter == mayorName) {
-						if (voted == "")
-							CheckOrSetMayor ();
-						else
-							this.mayorName = voted;						
-					} else if (voterPM.role == "Hunter") {
-						// votedPM.isAlive = false;
-					}
-				}
-			}
-
-			Destroy(svM.gameObject);
-			votes.Remove (svM);
+		public void SetNewMayor (string newMayorName) {
+			if (PhotonNetwork.isMasterClient)
+				this.mayorName = newMayorName;
 		}
 
 		/// <summary>

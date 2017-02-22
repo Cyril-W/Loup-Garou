@@ -69,6 +69,10 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				else
 					_whoReady.text += nbReadyNeeded;
 			}
+
+			// erase these lines of code when the game will be released
+			if(PlayerManager.LocalPlayerInstance != null && PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager>().role != "Ready")
+				SetReadyStatus ();
 	
 			if (PhotonNetwork.isMasterClient && nbReady >= nbReadyNeeded && nbReady == PhotonNetwork.room.PlayerCount) {			
 				//We lock the room and start the game!

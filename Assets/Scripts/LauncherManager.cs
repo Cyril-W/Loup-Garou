@@ -43,7 +43,6 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// </summary>
 		string _gameVersion = "1";
 
-		//static GameObject _chatCanvas;
 
 		#endregion
 
@@ -75,10 +74,20 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// </summary>
 		void Start()
 		{
-			if (GameObject.FindGameObjectWithTag ("Chat") != null)
-				OnOkPressed ();
+			// uncomment these lines when you release the game
+			//if (GameObject.FindGameObjectWithTag ("Chat") != null)
+			//	OnOkPressed ();
 			
 			Connect ();
+		}
+
+		// this function will be erased when the game will be released
+		void Update() 
+		{
+			if (PhotonNetwork.connectedAndReady && !isConnecting) {
+				OnOkPressed ();
+				RandomConnect ();
+			}
 		}
 
 

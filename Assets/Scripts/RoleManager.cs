@@ -44,27 +44,26 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			_nbWerewolfAlive = Mathf.RoundToInt (PhotonNetwork.room.PlayerCount / 3);
 
 			if (PhotonNetwork.isMasterClient) {
-				List<int> indexOfWerewolves = new List<int>();
-				for(int j = 0; j <= _nbWerewolfAlive - 1; j++) {
-					int randInt = Random.Range (0, PhotonNetwork.room.PlayerCount);
-					while(indexOfWerewolves.Contains (randInt))
-						randInt = Random.Range (0, PhotonNetwork.room.PlayerCount);
-					indexOfWerewolves.Add (randInt);
-				}
-
 				GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
 				for (int i = 0; i < players.Length; i++) {
+					GameObject temp = players[i];
+					int randomIndex = Random.Range(i, players.Length);
+					players[i] = players[randomIndex];
+					players[randomIndex] = temp;
+				}
+
+				for (int i = 0; i < players.Length; i++) {
 					string role;
-					if (indexOfWerewolves.Contains (i))
+					if (i <= _nbWerewolfAlive - 1)
 						role = "Werewolf";
+					else if (i == _nbWerewolfAlive)
+						role = "Seer";
 					else
-						role = "Villager";					
+						role = "Villager";
 					players [i].GetComponent<PhotonView> ().RPC("SetPlayerRoleAndTent", PhotonTargets.All, new object[] { role, tents.GetChild(i).name });
 				}
 			}
 		}
-
-
 		
 		// Update is called once per frame
 		void Update () {
