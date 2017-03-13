@@ -5,7 +5,12 @@ using System.Collections.Generic;
 
 namespace Com.Cyril_WIRTZ.Loup_Garou
 {
+	/// <summary>
+	/// Day Night cycle. 
+	/// This handles the shifting between day and night, the rotation of the sun and moon, the stars at night and the phases of the game.
+	/// </summary>
 	public class DayNightCycle : Photon.PunBehaviour, IPunObservable {
+		
 		#region Public Variables
 
 
@@ -17,11 +22,12 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		public RectTransform pivotPoint;
 		[Tooltip("The center of sun/moon timeline")]
 		public RectTransform translPoint;
+		/// <summary>
+		/// This allows distinct duration of each phases of day or night.
+		/// </summary>
+		public float[] secondsOfPhases;
 
-		[Tooltip("Enter a number of seconds to set the duration of a day")]
-		public static float secondsInDay = 300.0f;
-		[Tooltip("Enter a number of seconds to set the duration of a night")]
-		public static float secondsInNight = 180.0f;
+		public static bool isDebugging = false;
 		[Range(0,1)]
 		public static float currentTime = 0.0f;
 
@@ -32,9 +38,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region Private Variables
 
 
-		private Light sun;
-		private Transform moon;
-		private ParticleSystem stars;
+		Light _sun;
+		Transform _moon;
+		ParticleSystem _stars;
 
 
 		#endregion
@@ -43,24 +49,27 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region MonoBehaviour CallBacks
 
 
-	    // Use this for initialization
 	    void Start()
 	    {
 	        currentTime = 0.0f;
 
-	        sun = GetComponentInChildren<Light>();
-			moon = transform.GetChild (1);
-	        moon.transform.localPosition = new Vector3(0, 0, moonDistance);
-	        moon.transform.localScale = new Vector3(moonScale, moonScale, moonScale);
-			stars = GetComponentInChildren<ParticleSystem> ();
+	        _sun = GetComponentInChildren<Light>();
+			_moon = transform.GetChild (1);
+	        _moon.transform.localPosition = new Vector3(0, 0, moonDistance);
+	        _moon.transform.localScale = new Vector3(moonScale, moonScale, moonScale);
+			_stars = GetComponentInChildren<ParticleSystem> ();
+
+			// This is the beginner tips panel
+			GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (6).gameObject.SetActive(!isDebugging);
 
 			pivotPoint.localRotation = Quaternion.Euler(0f, 0f, 360f * -currentTime);
 		}
 
-	    // Update is called once per frame
 	    void Update()
 	    {
-	        checkTime();
+			currentTime += (Time.deltaTime / ( 8.0f * secondsOfPhases[GetCurrentState() - 1] ));
+			if (currentTime > 1f)
+				currentTime = 0f;
 
 	        UpdateLights();
 
@@ -78,7 +87,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		void OnGUI ()
 		{
-			if (PhotonNetwork.isMasterClient) {
+			if (isDebugging && PhotonNetwork.isMasterClient) {
 				int BoxWidth = 140;
 				int BoxHeight = 30;
 				DayNightCycle.currentTime = GUI.HorizontalSlider (new Rect ((Screen.width - BoxWidth - 10), 5, BoxWidth, BoxHeight), DayNightCycle.currentTime, 0.0f, 1.0f);
@@ -86,7 +95,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		}
 
 		/// <summary>
-		/// Depending on the time, the clock fills clockwise or anticlockwise.
+		/// Rotates the information clock and translates the sun/moon timeline
 		/// </summary>
 	    void UpdateClock()
 	    {
@@ -109,36 +118,31 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 	            intensityMultiplier = Mathf.Clamp01(1 - (currentTime - 0.5f) * (1 / 0.02f));
 
 	        // This is to adjust sun intensity
-	        sun.intensity = 1.0f * intensityMultiplier;
+	        _sun.intensity = 1.0f * intensityMultiplier;
 
 	        // No stars during the day, and lots of them at night !
-			var em = stars.emission;
+			var em = _stars.emission;
 			int nbOfStars = Mathf.RoundToInt ((1 - intensityMultiplier) * 1000);
 			em.enabled = nbOfStars == 0 ? false : true;
 			if (em.enabled == true) {
-				var main = stars.main;
+				var main = _stars.main;
 				main.maxParticles = nbOfStars;
 			}
 	    }
 
 		/// <summary>
-		/// This allows to have different duration of a day and a night.
+		/// This static function is called to know in which phase of the game we are.
 		/// </summary>
-	    void checkTime()
-	    {
-	        if (currentTime < 0.5f)
-	            currentTime += (Time.deltaTime / (2.0f * secondsInDay));
-	        else if (currentTime < 1.0f)
-	            currentTime += (Time.deltaTime / (2.0f * secondsInNight));
-	        else
-	            currentTime = 0.0f;        
-	    }
+		public static int GetCurrentState () {			
+			return Mathf.CeilToInt (Mathf.Clamp (currentTime * 8f, 1f, 8f));
+		}
 
 
 		#endregion
 
 
 		#region IPunObservable implementation
+
 
 		void IPunObservable.OnPhotonSerializeView (PhotonStream stream, PhotonMessageInfo info)
 		{

@@ -8,33 +8,34 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 {
 	/// <summary>
 	/// Player manager. 
-	/// Handles Status of player and who he voted against.
+	/// Handles the two different version of the Player: its spirit, when it is in the lobby, and its incarnation when it is in game.
 	/// </summary>
-	public class PlayerManager : Photon.PunBehaviour, IPunObservable
-	{
+	public class PlayerManager : Photon.PunBehaviour, IPunObservable {
+
 		#region Public Variables
 
 
-		[Tooltip("The local player instance. Use this to know if the local player is represented in the Scene")]
 		public static GameObject LocalPlayerInstance;
-
-		[Tooltip("Is our local player alive?")]
 		public bool isAlive = true;
-
-		[Tooltip("Is our local player a male?")]
+		/// <summary>
+		/// This variable is synced accross the Network and helps determine which 3D model should be used.
+		/// </summary>
 		public bool isMale = true;
-
-		[Tooltip("The player you voted against")]
 		public string votedPlayer;
-
-		[Tooltip("The role you were attributed")]
+		/// <summary>
+		/// This variable has two different roles: it indicates if the player is Ready in the lobby, and then it represents the secret role of the player.
+		/// </summary>
 		public string role;
-
-		[Tooltip("Is your role discovered (not synced on Photon)")]
+		/// <summary>
+		/// This variable is not synced, as it depends: each client knows if this player is discovered by the local player or not.
+		/// </summary>
 		public bool isDiscovered = false;
+		public GameObject house;
 
-		[Tooltip("The tent you were attributed")]
-		public string tent;
+		public bool deathPotionAvailable = false;
+		public bool lifePotionAvailable = false;
+		public bool seerRevealingAvailable = false;
+		public bool hunterBulletAvailable = false;
 
 
 		#endregion
@@ -43,7 +44,11 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region Private Variables
 
 
+		/// <summary>
+		/// This serves to display the role of the local player and if he's the Mayor or not.
+		/// </summary>
 		Transform _rolePanel;
+		Text _votedPlayerText;
 
 
 		#endregion
@@ -52,38 +57,17 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region MonoBehaviour CallBacks
 
 
-		/// <summary>
-		/// MonoBehaviour method called on GameObject by Unity during early initialization phase.
-		/// </summary>
 		void Awake()
 		{		
-			Button[] swapButtons = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild(4).GetChild(2).GetComponentsInChildren<Button>();
-			swapButtons[0].onClick.AddListener (delegate { SwapGender (); });
-			swapButtons[1].onClick.AddListener (delegate { SwapGender (); });
 			gameObject.name = photonView.owner.NickName;
-
-			isAlive = true;
-
-			if (photonView.isMine) {
-				isDiscovered = true;
-				Renderer[] rends = GetComponentsInChildren<Renderer> ();
-				rends[0].material.SetColor("_TintColor", Color.red);
-				rends[1].material.SetColor("_TintColor", Color.red);
-				rends[2].material.color = Color.red;
-			} else {
-				isDiscovered = false;
-				Renderer[] rends = GetComponentsInChildren<Renderer> ();
-				rends[0].material.SetColor("_TintColor", Color.blue);
-				rends[1].material.SetColor("_TintColor", Color.blue);
-				rends[2].material.color = Color.blue;
-			}
-
 			GetComponentInChildren<TextMesh> ().text = PlayerManager.GetProperName(gameObject.name);
-		}
 
-		/// <summary>
-		/// MonoBehaviour method called on GameObject by Unity on every frame.
-		/// </summary>
+			if(photonView.isMine)
+				isDiscovered = true;
+
+			OnSceneLoaded (SceneManager.GetActiveScene(), LoadSceneMode.Single);
+		}
+			
 		void Update()
 		{
 			if (SceneManagerHelper.ActiveSceneBuildIndex == 1) {
@@ -95,14 +79,17 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					transform.GetChild (1).gameObject.SetActive (!isMale);
 					transform.GetChild (2).gameObject.SetActive (false);
 				} else {
-					if (photonView.isMine) {
-						GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
-						foreach (GameObject player in players)
-							player.GetComponent<PlayerManager> ().isDiscovered = true;
-						votedPlayer = "";
+					if (photonView.isMine) {	
 						if (VoteManager.Instance.mayorName == gameObject.name) {
 							VoteManager.Instance.mayorName = "";
-							VoteManager.Instance.StartOneShotVote ("Mayor");
+							VoteManager.Instance.StartSingleVote ("Mayor");
+						}
+						if (hunterBulletAvailable)
+							VoteManager.Instance.StartSingleVote ("Hunter");
+						if (VoteManager.singleVotes.Count == 0) {
+							GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
+							foreach (GameObject player in players)
+								player.GetComponent<PlayerManager> ().isDiscovered = true;
 						}
 					}
 					if (!isDiscovered)
@@ -112,8 +99,11 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					transform.GetChild (2).gameObject.SetActive (true);
 				}
 
-				if (photonView.isMine)
+				if (photonView.isMine) {
 					DisplayRole ();
+					if(_votedPlayerText != null)
+						_votedPlayerText.text = PlayerManager.GetProperName(votedPlayer);
+				}
 			}
 		}
 
@@ -132,9 +122,33 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region Custom
 
 
+		/// <summary>
+		/// This switches from the ghost form to the incarnated form, depending on the scene loaded.
+		/// </summary>
 		void OnSceneLoaded(Scene scene, LoadSceneMode mode) {
-			if (scene.buildIndex == 2) {
+			if (scene.buildIndex == 1) {	
+				gameObject.GetComponent<Rigidbody>().isKinematic = true;
+				transform.GetChild (0).gameObject.SetActive (false);
+				transform.GetChild (1).gameObject.SetActive (false);
+				transform.GetChild (2).gameObject.SetActive (true);
+
+				// To dinstinguish whether the 3D model is our or not from a glance: red is our, blue is other's
+				Renderer[] rends = GetComponentsInChildren<Renderer> ();
+				if(photonView.isMine) {
+					rends[0].material.SetColor("_TintColor", Color.red);
+					rends[1].material.SetColor("_TintColor", Color.red);
+					rends[2].material.color = Color.red;
+				} else {
+					rends[0].material.SetColor("_TintColor", Color.blue);
+					rends[1].material.SetColor("_TintColor", Color.blue);
+					rends[2].material.color = Color.blue;
+				}
+
+				GetComponent<MinimapObjectID> ().enabled = false;
+				GetComponent<PlayerAnimatorManager> ().enabled = false;
+			} else if (scene.buildIndex == 2) {
 				_rolePanel = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (1);
+				_votedPlayerText = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (3).GetComponentInChildren<Text> ();
 
 				gameObject.GetComponent<Rigidbody>().isKinematic = false;
 				if(isMale)
@@ -143,6 +157,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					transform.GetChild (1).gameObject.SetActive (true);
 				transform.GetChild (2).gameObject.SetActive (false);
 
+				// To dinstinguish whether the 3D model is our or not from a glance: red is our, blue is other's
 				Renderer[] rends = GetComponentsInChildren<Renderer> ();
 				if(photonView.isMine) {
 					rends[1].material.color = Color.red;
@@ -152,12 +167,17 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					rends[2].material.color = Color.blue;
 				}
 
-				if(!photonView.isMine)
+				if (!photonView.isMine)
 					GetComponent<MinimapObjectID> ().enabled = true;
+				else
+					GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (3).GetComponentInChildren<Button> ().onClick.AddListener (delegate {	ClearVotedPlayer (); });
 				GetComponent<PlayerAnimatorManager> ().enabled = true;
 			}
 		}
 
+		/// <summary>
+		/// This eliminates the Numbers at the end of the player name.
+		/// </summary>
 		public static string GetProperName(string name) {
 			int nbToKeep = 0;
 			foreach (char c in name) {
@@ -170,12 +190,21 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		}
 			
 		[PunRPC]
-		public void SetPlayerRoleAndTent (string role, string tent) {
-			// outside of the if because it's not synced by the network! Whereas the role must (because it can change!)
-			this.tent = tent;
+		public void SetPlayerRoleAndTent (string role, string house) {
+			GameObject[] houses = GameObject.FindGameObjectsWithTag ("House");
+			foreach (GameObject h in houses) {
+				if (h.name == house)
+					this.house = h;
+			}
+			this.role = role;
 
-			if (photonView.isMine)
-				this.role = role;
+			if (photonView.isMine) {
+				if (role == "Witch") {
+					lifePotionAvailable = true;
+					deathPotionAvailable = true;
+				} else if (role == "Hunter")
+					hunterBulletAvailable = true;
+			}
 		}
 
 		[PunRPC]
@@ -184,12 +213,30 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				this.isAlive = false;
 		}
 
+		[PunRPC]
+		public void ResetPlayerVote () {
+			if (photonView.isMine)
+				this.votedPlayer = "";
+		}
+
+		/// <summary>
+		/// This is usefull to avoid the players from being detected because they didn't come home at night when their turn is over.
+		/// /!\ If you stay out when the night falls, this will not be triggered /!\
+		/// </summary>
+		public void GoHome() {
+			if (house.GetComponent<HouseManager> ().ownerInside == false)
+				gameObject.transform.position = house.transform.position + Vector3.up * 2f;
+		}
+
+		/// <summary>
+		/// This updates the role card of the player on its GUI and also shows him if he's the Mayor or not.
+		/// </summary>
 		void DisplayRole() {
 			string roleText = "";
-			Sprite roleSprite;
+			string roleName = role;
 			if (!isAlive) {
-				roleText = "Dead\nYou can still hear but not talk to the others. Either leave the game or wait until a Witch revives you.";
-				roleSprite = Resources.Load ("Cards/Card", typeof(Sprite)) as Sprite;
+				roleText = "Dead\nYou can still hear but not talk to the others. You can leave the game or spy other player.";
+				roleName = "Dead";
 			} else {
 				if (role == "Villager")
 					roleText = role + "\nYour aim is to eliminate all Werewolves from the game. The only way to achieve that is to vote against a player during the day.";
@@ -197,15 +244,21 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					roleText = role + "\nYour aim is to eliminate all Villagers from the game. To achieve this, you can vote one more time against a player, at night.";
 				else if (role == "Seer")
 					roleText = role + "\nYour aim is to eliminate all Werewolves from the game. To achieve this, you can discover the role of someone each night.";
-				roleSprite = Resources.Load ("Cards/" + role, typeof(Sprite)) as Sprite;
+				else if (role == "Witch") {
+					roleText = role + "\nYour aim is to eliminate all Werewolves from the game. To achieve this, you can kill one person, and save one person per game.\n";
+					if(!lifePotionAvailable || !deathPotionAvailable)
+						roleName += (lifePotionAvailable ? "1" : "0") + (deathPotionAvailable ? "1" : "0");
+				} else if (role == "Hunter")
+					roleText = role + "\nYour aim is to eliminate all Werewolves from the game. To achieve this, you can shot dead someone when you get killed.";
 			}
+			Sprite roleSprite = Resources.Load ("Cards/" + roleName, typeof(Sprite)) as Sprite;
 			_rolePanel.GetChild(0).GetComponentInChildren<Text> ().text = roleText;
 			if (roleSprite != null)
 				_rolePanel.GetChild (1).GetComponent<Image> ().sprite = roleSprite;
 			else
 				Debug.Log ("No image was found for " + role);
 
-			if (gameObject.name == VoteManager.Instance.mayorName) {
+			if (VoteManager.Instance != null && gameObject.name == VoteManager.Instance.mayorName) {
 				roleText = "Mayor\nAs the representant of your people, your vote counts for double. If you die, you will have to chose your successor.";
 				roleSprite = Resources.Load ("Cards/MayorDay", typeof(Sprite)) as Sprite;
 			} else {
@@ -219,9 +272,19 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				Debug.Log ("No image was found for the Mayor (Day/Night)");
 		}
 
+		/// <summary>
+		/// This event is triggered in the lobby, when the local player clicks the button to change its gender.
+		/// </summary>
 		public void SwapGender() {
 			PlayerManager pM = PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ();
 			pM.isMale = !(pM.isMale);
+		}
+
+		/// <summary>
+		/// This event is triggered when the local player clicks the button to clear its vote.
+		/// </summary>
+		public void ClearVotedPlayer () {
+			votedPlayer = "";
 		}
 
 
@@ -239,7 +302,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				stream.SendNext(isAlive);
 				stream.SendNext(isMale);
 				stream.SendNext(votedPlayer);
-				stream.SendNext (role);
+				stream.SendNext(role);
 			}else{
 				// Network player, receive data
 				this.isAlive = (bool)stream.ReceiveNext();

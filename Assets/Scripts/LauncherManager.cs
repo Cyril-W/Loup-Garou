@@ -5,8 +5,12 @@ using UnityEngine.UI;
 
 namespace Com.Cyril_WIRTZ.Loup_Garou
 {
-	public class LauncherManager : Photon.PunBehaviour
-	{
+	/// <summary>
+	/// Launcher manager. 
+	/// Handles the setting of the player name, the manual and the random connection.
+	/// </summary>
+	public class LauncherManager : Photon.PunBehaviour {
+		
 		#region Public Variables
 
 
@@ -16,13 +20,14 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// <summary>
 		/// The maximum number of players per room. When a room is full, it can't be joined by new players, and so new room will be created.
 		/// </summary>   
-		[Tooltip("The maximum number of players per room. When a room is full, it can't be joined by new players, and so new room will be created")]
-		public byte MaxPlayersPerRoom = 6;
+		public byte MaxPlayersPerRoom = 20;
 
 		/// <summary>
 		/// The PUN loglevel. 
 		/// </summary>
 		public PhotonLogLevel Loglevel = PhotonLogLevel.ErrorsOnly;
+
+		public bool isDebugging = false;
 
 
 		#endregion
@@ -41,7 +46,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// <summary>
 		/// This client's version number. Users are separated from each other by gameversion (which allows you to make breaking changes).
 		/// </summary>
-		string _gameVersion = "1";
+		string _gameVersion = "2";
 
 
 		#endregion
@@ -49,9 +54,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		#region MonoBehaviour CallBacks
 
-		/// <summary>
-		/// MonoBehaviour method called on GameObject by Unity during early initialization phase.
-		/// </summary>
+
 		void Awake()
 		{
 			// #NotImportant
@@ -67,26 +70,24 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			// this makes sure we can use PhotonNetwork.LoadLevel() on the master client and all clients in the same room sync their level automatically
 			PhotonNetwork.automaticallySyncScene = true;
 		}
-
-
-		/// <summary>
-		/// MonoBehaviour method called on GameObject by Unity during initialization phase.
-		/// </summary>
+			
 		void Start()
 		{
-			// uncomment these lines when you release the game
-			//if (GameObject.FindGameObjectWithTag ("Chat") != null)
-			//	OnOkPressed ();
+			if (!isDebugging) {
+				if (GameObject.FindGameObjectWithTag ("Chat") != null)
+					OnOkPressed ();
+			}
 			
 			Connect ();
 		}
-
-		// this function will be erased when the game will be released
+			
 		void Update() 
 		{
-			if (PhotonNetwork.connectedAndReady && !isConnecting) {
-				OnOkPressed ();
-				RandomConnect ();
+			if (isDebugging) {
+				if (PhotonNetwork.connectedAndReady && !isConnecting) {
+					OnOkPressed ();
+					RandomConnect ();
+				}
 			}
 		}
 
@@ -94,7 +95,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#endregion
 
 
-		#region Public Methods
+		#region Custom
 
 
 		/// <summary>
@@ -104,15 +105,17 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		{
 			transform.GetChild(0).GetChild (1).gameObject.SetActive (true);
 			transform.GetChild(0).GetChild (2).gameObject.SetActive (true);
-			InputField inputField = transform.GetChild(0).GetChild (0).GetComponentInChildren<InputField> ();
-			inputField.text += Random.Range (1000, 9999);
-			inputField.DeactivateInputField();
-			inputField.interactable = false;
-			if (GameObject.FindGameObjectWithTag("Chat") == null)
-				Instantiate (chatCanvas);
-			else
-				inputField.text = ChatManager.UserName;
-			transform.GetChild(0).GetChild (0).GetChild (2).gameObject.SetActive (false);
+			if (transform.GetChild (0).GetChild (0).GetChild (2).gameObject.activeSelf == true) {
+				InputField inputField = transform.GetChild (0).GetChild (0).GetComponentInChildren<InputField> ();
+				inputField.text += Random.Range (1000, 9999).ToString();
+				inputField.DeactivateInputField ();
+				inputField.interactable = false;
+				if (GameObject.FindGameObjectWithTag ("Chat") == null)
+					Instantiate (chatCanvas);
+				else
+					inputField.text = ChatManager.UserName;
+				transform.GetChild (0).GetChild (0).GetChild (2).gameObject.SetActive (false);
+			}
 		}
 
 		/// <summary>
@@ -178,12 +181,6 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				PhotonNetwork.JoinOrCreateRoom (roomName, new RoomOptions() { IsVisible = false, MaxPlayers = MaxPlayersPerRoom }, null);
 			}
 		}
-
-
-		#endregion
-
-		#region Photon.PunBehaviour CallBacks
-
 
 		public override void OnConnectedToMaster()
 		{

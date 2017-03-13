@@ -19,6 +19,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 	/// Handles the coordinates of other players on your minimap, using trigonometric position.
 	/// </summary>
 	public class Minimap : MonoBehaviour {
+		
 		#region Public Variables
 
 
@@ -35,7 +36,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region Private Variables
 
 
-		static List<MinimapObject> objects = new List<MinimapObject> ();
+		static List<MinimapObject> _objects = new List<MinimapObject> ();
 
 
 		#endregion
@@ -50,7 +51,6 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			PlayerAnimatorManager.compas = transform.GetChild(0);
 		}
 
-		// Update is called once per frame
 		void Update () {
 			DrawMinimapDots ();
 		}
@@ -70,7 +70,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			image.color = color;
 			image.transform.SetParent (transform);
 
-			objects.Add (new MinimapObject () { Owner = owner, Icon = image });
+			_objects.Add (new MinimapObject () { Owner = owner, Icon = image });
 		}
 
 		/// <summary>
@@ -78,14 +78,14 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// </summary>
 		public void RemoveMinimapObject (MinimapObject mO) {
 			Destroy (mO.Icon);
-			objects.Remove(mO);
+			_objects.Remove(mO);
 		}
 
 		/// <summary>
 		/// Recolor the image in the minimap.
 		/// </summary>
 		public void RecolorMinimapObject (GameObject owner) {
-			MinimapObject mO = objects.Find (o => o.Owner == owner);
+			MinimapObject mO = _objects.Find (o => o.Owner == owner);
 			if(mO != null)
 				mO.Icon.color = owner.GetComponent<MinimapObjectID>().color;
 			else
@@ -96,8 +96,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// Calculate position of other players from your localPlayer and put the dot in the right place. If the player turn it simply pivot around the center of the minimap
 		/// </summary>
 		void DrawMinimapDots () {
-			for (int i = 0; i < objects.Count; i++) {
-				MinimapObject obj = objects [i];
+			for (int i = 0; i < _objects.Count; i++) {
+				MinimapObject obj = _objects [i];
 				if (obj.Owner != null) {
 					Transform playerPos = PlayerManager.LocalPlayerInstance.transform;
 					Vector3 minimapPos = (obj.Owner.transform.position - playerPos.position);

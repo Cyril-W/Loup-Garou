@@ -8,9 +8,10 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 {
 	/// <summary>
 	/// Lobby manager. 
-	/// Handles the status number of ready, which is synced by Photon.
+	/// Handles the tutorial canvas, and the number of Ready players before entering a game.
 	/// </summary>
 	public class LobbyManager : Photon.PunBehaviour {
+		
 		#region Public Variables
 
 
@@ -22,8 +23,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		public Sprite notReadySprite;
 		[Tooltip("The center of the world around which players are spawned")]
 		public Transform fireCamp;
-		[Tooltip("The number of people you need to gather before starting to play")]
 		public int nbReadyNeeded;
+		public bool isDebugging = false;
 
 
 		#endregion
@@ -32,7 +33,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region Private Variables
 
 
-		Text _whoReady;
+		Text _howManyReady;
 
 
 		#endregion
@@ -41,18 +42,24 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region MonoBehaviour CallBacks
 
 
-		// Use this for initialization
 		void Start () {
-			nbReadyNeeded = 3;
+			nbReadyNeeded = 2;
 
 			ChatManager.RoomName = PhotonNetwork.room.Name;
 
-			_whoReady = readyPanel.GetChild(2).GetComponent<Text>();
+			_howManyReady = readyPanel.GetChild(2).GetComponent<Text>();
+
+			Button[] swapButtons = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild(4).GetChild(2).GetComponentsInChildren<Button>();
+			swapButtons [0].onClick.AddListener (delegate {
+				PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ().SwapGender ();
+			});
+			swapButtons [1].onClick.AddListener (delegate {
+				PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ().SwapGender ();
+			});
 		}
 
-		// Update is called once per frame
 		void Update () {
-			_whoReady.text = "";
+			_howManyReady.text = "";
 			int nbReady = 0;
 
 			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
@@ -63,20 +70,20 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			}
 
 			if (PhotonNetwork.inRoom) {
-				_whoReady.text = nbReady + " / ";
+				_howManyReady.text = nbReady + " / ";
 				if (PhotonNetwork.room.PlayerCount >= nbReadyNeeded)
-					_whoReady.text += PhotonNetwork.room.PlayerCount;
+					_howManyReady.text += PhotonNetwork.room.PlayerCount;
 				else
-					_whoReady.text += nbReadyNeeded;
+					_howManyReady.text += nbReadyNeeded;
 			}
 
-			// erase these lines of code when the game will be released
-			if(PlayerManager.LocalPlayerInstance != null && PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager>().role != "Ready")
-				SetReadyStatus ();
+			if(isDebugging) {
+				if(PlayerManager.LocalPlayerInstance != null && PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager>().role != "Ready")
+					SetReadyStatus ();
+			}
 	
 			if (PhotonNetwork.isMasterClient && nbReady >= nbReadyNeeded && nbReady == PhotonNetwork.room.PlayerCount) {			
 				//We lock the room and start the game!
-				//PhotonNetwork.room.ClearExpectedUsers ();
 				PhotonNetwork.room.IsOpen = false;
 				PhotonNetwork.room.IsVisible = false;
 				PhotonNetwork.LoadLevel ("Main");
@@ -92,7 +99,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					angle = (playerRank * 2f * Mathf.PI / PhotonNetwork.room.MaxPlayers); // get the angle for this step (in radians, not degrees)
 					x = Mathf.Cos (angle) * 6f;
 					z = Mathf.Sin (angle) * 6f;
-				} while(CheckPlayerPosition(x, z));
+				} while(IsPlayerPositionAvailable(x, z));
 
 				Vector3 positionOnCircle = new Vector3(x, 3f, z);
 				positionOnCircle += fireCamp.position; 
@@ -103,10 +110,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				PlayerManager.LocalPlayerInstance = player;
 			}
 		}
-
-		/// <summary>
-		/// Called when the local player left the room. We need to load the launcher scene.
-		/// </summary>
+			
 		public override void OnLeftRoom()
 		{
 			SceneManager.LoadScene(0);
@@ -124,6 +128,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			PhotonNetwork.LeaveRoom();
 		}
 
+		/// <summary>
+		/// This event is triggered when the local player clicks on the button "Ready".
+		/// </summary>
 		public void SetReadyStatus() {
 			Button readyButton = readyPanel.GetChild (1).GetComponentInChildren<Button> ();
 			PlayerManager pM = PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ();
@@ -143,7 +150,10 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			}
 		}
 
-		bool CheckPlayerPosition(float x, float z) {
+		/// <summary>
+		/// This little function compares the position of the local player to any player that can be in the same spot.
+		/// </summary>
+		bool IsPlayerPositionAvailable(float x, float z) {
 			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
 			foreach (GameObject player in players) {
 				if (Mathf.Approximately (player.transform.position.x, x) && Mathf.Approximately (player.transform.position.z, z))
@@ -154,8 +164,5 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 
 		#endregion
-
-
-
 	}
 }

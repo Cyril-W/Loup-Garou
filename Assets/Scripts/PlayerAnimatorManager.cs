@@ -4,65 +4,90 @@ using UnityEngine;
 
 namespace Com.Cyril_WIRTZ.Loup_Garou
 {
-	public class PlayerAnimatorManager : Photon.MonoBehaviour 
-	{
+	/// <summary>
+	/// Player Animator manager. 
+	/// Handles movements of the local player.
+	/// </summary>
+	public class PlayerAnimatorManager : Photon.MonoBehaviour {
+		
 		#region Public Variables
 
-		[Tooltip("The current Speed of our player")]
-		public float speed = 10.0f;
-		public float rotationSpeed = 100.0f;
-		public float verticalSpeed = 5.0f;
+
+		[System.Serializable]
+		public class MoveSettings
+		{
+			public float forwardVel = 12f;
+			public float strafVel = 10f;
+			public float rotateVel = 100f;
+			public float jumpVel = 10f;
+			public float distToGrounded = 1.1f;
+			public LayerMask ground;
+		}
+
+		[System.Serializable]
+		public class PhysSettings
+		{
+			public float downAccel = 0.5f;
+		}
+
+		[System.Serializable]
+		public class InputSettings
+		{
+			public float inputDelay = 0.1f;
+		}
+
+		public MoveSettings moveSetting = new MoveSettings();
+		public PhysSettings physSetting = new PhysSettings();
+		public InputSettings inputSetting = new InputSettings();
+
+		public Quaternion TargetRotation {
+			get { return targetRotation; }
+		}
 
 		public static bool isBlocked = false;
 		public static Transform compas;
 
+
 		#endregion
+
 
 		#region Private Variables
 
-		private float distToGround;
-		private Rigidbody rb;
-		private float walkingSpeed; //used to store the values of different speeds
-		private float runningSpeed; //in order to switch to walk/run easily
-		private Animator anim;
+
+		Vector3 velocity = Vector3.zero;
+		Quaternion targetRotation;
+		Rigidbody rBody;
+		Animator anim;
+		float forwardInput, turnInput, strafInput, jumpInput;
+
 
 		#endregion
+
 
 		#region MonoBehavior CallBacks
 
 
-		// Use this for initialization
 		void Start () 
 		{
 			anim = GetComponent<Animator>();
 			if (!anim)
 				Debug.LogWarning("PlayerAnimatorManager is Missing Animator Component",this);
-			walkingSpeed = speed;
-			runningSpeed = 2 * speed;
-			rb = GetComponentInChildren<Rigidbody>();
-			distToGround = GetComponentInChildren<Collider>().bounds.extents.y;
-		}
+			targetRotation = transform.rotation;
+			if (GetComponent<Rigidbody> ())
+				rBody = GetComponent<Rigidbody> ();
+			else
+				Debug.Log ("No rigidbody attached to the player!");
 
-		// Update is called once per frame
+			forwardInput = turnInput = strafInput = jumpInput = 0;
+		}
+			
 		void Update ()
 		{
 			if ((photonView.isMine == false && PhotonNetwork.connected == true) || isBlocked)
 				return;
 			
-			//Jump
-			if(Input.GetKeyDown(KeyCode.Space))
-			{
-				Jump();
-			}
-
-			//Run
-			if (Input.GetKey (KeyCode.LeftShift)) 
-			{
-				if(IsGrounded())
-					speed = runningSpeed;
-			}
-			else
-				speed = walkingSpeed;
+			GetInput ();
+			Turn ();
 		}
 					
 		void FixedUpdate () 
@@ -70,53 +95,64 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			if ((photonView.isMine == false && PhotonNetwork.connected == true) || isBlocked)
 				return;
 			
-			float translation = Input.GetAxis ("Vertical") * speed;
-			float rotation = Input.GetAxis ("Horizontal") * rotationSpeed;
+			Run ();
+			Jump ();
 
-			if (translation != 0 || rotation != 0) 
-			{		
-				translation *= Time.deltaTime;
-				rotation *= Time.deltaTime;
-				transform.Translate (0, 0, translation);
-				transform.Rotate (0, rotation, 0);
-				if(!compas)
-					compas.Rotate (0, 0, -rotation);
-				
-				if(!anim)
-					anim.SetBool ("isWalking", true);
-			} else 
-			{
-				if(!anim)
-					anim.SetBool ("isWalking", false);
-			}
+			rBody.velocity = transform.TransformDirection (velocity);
 		}
 
 
 		#endregion
 
+
 		#region Custom
 
-		/// <summary>
-		/// Checks if player touches the ground. Used as a flag representing when the player is on the ground.
-		/// </summary>
-		bool IsGrounded() 
-		{
-			return Physics.Raycast(transform.position, -Vector3.up, distToGround + 0.05f);
+
+		void GetInput () {
+			forwardInput = Input.GetAxis ("Vertical");
+			turnInput = Input.GetAxis ("Horizontal");
+			strafInput = Input.GetAxis ("Straf");
+			jumpInput = Input.GetAxisRaw ("Jump"); //non-interpolated
 		}
 
-		/// <summary>
-		/// Tries to jump. Uses the flag IsGrounded.
-		/// </summary>
-		void Jump()	
-		{
-			if(IsGrounded())
-			{				
-				rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
-				rb.AddForce(Vector3.up * verticalSpeed, ForceMode.Impulse);
+		void Run () {
+			if (Mathf.Abs (forwardInput) > inputSetting.inputDelay) {
+				velocity.z = moveSetting.forwardVel * forwardInput;
 				if(!anim)
-					anim.SetTrigger("jump");
+					anim.SetBool ("isWalking", true);
+			} else {
+				velocity.z = 0;
+				if(!anim)
+					anim.SetBool ("isWalking", false);
 			}
+
+			if (Mathf.Abs (strafInput) > inputSetting.inputDelay)
+				velocity.x = moveSetting.strafVel * strafInput;
+			else
+				velocity.x = 0;
 		}
+
+		void Turn () {
+			if (Mathf.Abs (turnInput) > inputSetting.inputDelay) 
+				targetRotation *= Quaternion.AngleAxis (moveSetting.rotateVel * turnInput * Time.deltaTime, Vector3.up);
+			transform.rotation = targetRotation;
+			if(!compas)
+				compas.rotation = targetRotation;
+		}
+
+		void Jump () {
+			if (jumpInput > 0 && Grounded ())
+				velocity.y = moveSetting.jumpVel;
+			else if (jumpInput == 0 && Grounded ())
+				velocity.y = 0;
+			else
+				velocity.y -= physSetting.downAccel;
+		}
+
+		bool Grounded () {
+			return Physics.Raycast (transform.position, Vector3.down, moveSetting.distToGrounded, moveSetting.ground);
+		}
+
 
 		#endregion
 	}

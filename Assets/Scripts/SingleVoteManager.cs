@@ -7,23 +7,20 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 {
 	/// <summary>
 	/// Single Vote manager. 
-	/// Handles the vote from the localPlayer, which is synced by Photon.
+	/// Handles the vote from the localPlayer only, when he dies as a Mayor or Hunter.
 	/// </summary>
 	public class SingleVoteManager : MonoBehaviour {
+		
 		#region Public Variables
 
 
 		[Tooltip("The Prefab used to populate the player list")]
 		public GameObject voteButton;
-
-		public Text title;
-		public Text description;
+		[Tooltip("The Transform to which player buttons are added")]
 		public Transform voteButtonGrid;
-
-		public float secondsToVote = 30f;
-		public string reason = "";
-
 		public List<PlayerButton> playerButtons;
+		public string reason;
+		public float secondsToVote = 30f;
 
 
 		#endregion
@@ -33,6 +30,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 
 		PlayerManager _localPM;
+		Text _title;
+		Text _description;
+		Text _counter;
 
 
 		#endregion
@@ -41,10 +41,12 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region MonoBehaviour CallBacks
 
 
-		// Use this for initialization
 		void Awake () {
+			_title = transform.GetChild (0).GetChild (0).GetComponent<Text> ();
+			_description = transform.GetChild (1).GetChild (0).GetComponent<Text> ();
+			_counter = transform.GetChild (0).GetChild (1).GetComponent<Text> ();
+
 			_localPM = PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ();
-			_localPM.votedPlayer = "";
 
 			playerButtons = new List<PlayerButton> ();
 
@@ -52,31 +54,37 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			foreach (GameObject player in players) {
 				if (player != PlayerManager.LocalPlayerInstance) {
 					PlayerManager pM = player.GetComponent<PlayerManager> ();
-					if(pM.isAlive)
+					if (pM.isAlive)
 						RegisterPlayerForVote (pM);
 				}
 			}
 
 			voteButtonGrid.transform.parent.GetComponent<ScrollRect> ().verticalNormalizedPosition = 1;
 
+			// The vote is instantly canceled if no player is alive
 			if (playerButtons.Count == 0)
 				secondsToVote = 0;
 		}
 
-		// Update is called once per frame
 		void Update () {
-			transform.GetChild(0).GetChild(1).GetComponent<Text> ().text = Mathf.RoundToInt(secondsToVote).ToString();
+			if (reason == "Mayor") {
+				_title.text = "Successor vote";
+				_description.text = "Elect your successor:\n\nYou have few seconds to name the next Mayor of the Village. If you don't seize this opportunity, a new Mayor will be randomly elected.";
+			} else if (reason == "Hunter") {
+				_title.text = "Vendetta vote";
+				_description.text = "One name, one dead:\n\nYou have been killed. You now have few seconds to name the victime of your riffle. If you don't seize this occasion, nobody will die.";
+			} else {
+				_title.text = "Unknown reason";
+				_description.text = "No reason!\n\nThis vote has been started without any particular reason to it...";
+			}
+
+			_counter.text = Mathf.RoundToInt(secondsToVote).ToString();
 			secondsToVote -= Time.deltaTime;
 			if (secondsToVote <= 0f) {
 				secondsToVote = 0f;
 
-				gameObject.SetActive (false);
-				if (reason != "")
-					AnalyzeOneShotResult ("");
-			} else {
-				if(reason == "")
-					gameObject.SetActive (_localPM.isAlive);
-			}
+				AnalyzeOneShotResult ("");
+			} 
 		}
 
 
@@ -86,40 +94,46 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region Custom
 
 
+		/// <summary>
+		/// Depending on the reason, elects a new mayor or kills a player ... or do nothing if no one has been selected.
+		/// </summary>
 		void AnalyzeOneShotResult(string voted) {
-			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
-			GameObject votedPlayer = null;
-			foreach (GameObject player in players) {
-				if (player.name == voted)
-					votedPlayer = player;					
-			}
-			if (votedPlayer != null) {
-				if (reason == "Mayor")
-					VoteManager.Instance.gameObject.GetComponent<PhotonView>().RPC("SetNewMayor", PhotonTargets.MasterClient, new object[] { voted });					
-				else if (reason == "Hunter")
-					votedPlayer.GetComponent<PhotonView>().RPC("KillPlayer", PhotonTargets.All, new object[] {});				
-			}
+			gameObject.SetActive (false);
 
-			VoteManager.votes.Remove (this);
+			if (voted != "") {
+				GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
+				GameObject votedPlayer = null;
+				foreach (GameObject player in players) {
+					if (player.name == voted)
+						votedPlayer = player;					
+				}
+				if (votedPlayer != null) {
+					if (reason == "Mayor")
+						VoteManager.Instance.gameObject.GetComponent<PhotonView> ().RPC ("SetNewMayor", PhotonTargets.MasterClient, new object[] { voted });
+					else if (reason == "Hunter")
+						votedPlayer.GetComponent<PhotonView> ().RPC ("KillPlayer", PhotonTargets.All, new object[] { });
+				}
+			} 
+
+			if (reason == "Hunter")
+				_localPM.hunterBulletAvailable = false;
+
+			VoteManager.singleVotes.Remove (this);
 			Destroy(gameObject);
 		}
 
+		/// <summary>
+		/// This is the event triggered by the player vote button.
+		/// </summary>
 		public void OnClicked(string playerClicked) {
-			if (reason != "") {
-				gameObject.SetActive (false);
-				AnalyzeOneShotResult (playerClicked);
-			} else {
-				PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ().votedPlayer = playerClicked;
-				secondsToVote = 0;
-			}
+			AnalyzeOneShotResult (playerClicked);			
 		}
 
+		/// <summary>
+		/// This is the event triggered by the cancel button.
+		/// </summary>
 		public void OnSkipVote() {
-			if (reason != "") {
-				gameObject.SetActive (false);
-				AnalyzeOneShotResult ("");
-			} else
-				secondsToVote = 0;			
+			AnalyzeOneShotResult ("");	
 		}
 
 		/// <summary>
@@ -148,9 +162,11 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			}
 
 			btn.transform.SetParent (voteButtonGrid);
-			btn.onClick.AddListener (delegate { OnClicked (playerName); });
+			btn.onClick.AddListener (delegate {
+				OnClicked (playerName);
+			});
 
-			playerButtons.Add (new PlayerButton() {Button = btn, PlayerName = playerName});
+			playerButtons.Add (new PlayerButton () { Button = btn, PlayerName = playerName });
 		}
 
 		/// <summary>

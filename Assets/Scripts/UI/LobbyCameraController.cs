@@ -4,7 +4,15 @@ using UnityEngine;
 
 namespace Com.Cyril_WIRTZ.Loup_Garou
 {
+	/// <summary>
+	/// Lobby camera controller. 
+	/// Handles the position of the camera during all the phases of the lobby tutorial.
+	/// </summary>
 	public class LobbyCameraController : MonoBehaviour {
+
+		#region Public Variables
+
+
 		[Tooltip("Prefab of the image used to show the position of the gameObject on the minimap")]
 		public Transform currentTarget;
 		[Tooltip("Prefab of the image used to show the position of the gameObject on the minimap")]
@@ -12,14 +20,26 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		[Tooltip("Prefab of the image used to show the position of the gameObject on the minimap")]
 		public float zoomFactor = 1.0f;
 
+
+		#endregion
+
+
+		#region Private Variables
+
+
 		Vector3 _lastPosition;
 
-		// Use this for initialization
+
+		#endregion
+
+
+		#region MonoBehaviour CallBacks
+
+
 		void Start () {
 			_lastPosition = transform.position;
 		}
 		
-		// Update is called once per frame
 		void Update () {
 			transform.position = Vector3.Lerp (transform.position, currentTarget.position, speedFactor);
 			transform.rotation = Quaternion.Slerp (transform.rotation, currentTarget.rotation, speedFactor);
@@ -30,8 +50,18 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			_lastPosition = transform.position;
 		}
 
+
+		#endregion
+
+
+		#region Custom
+
+
 		public void SetTarget(Transform target) {
 			currentTarget = target;
 		}
+
+
+		#endregion
 	}
 }

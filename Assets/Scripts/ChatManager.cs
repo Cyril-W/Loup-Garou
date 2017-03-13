@@ -13,6 +13,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 	/// </summary>
 	public class ChatManager : MonoBehaviour, IChatClientListener {
 
+		#region Public Variables
+
+
 		public static ChatClient chatClient;
 		public static string UserName { get; set; }
 		public static string ChannelName { get; set; }
@@ -28,13 +31,23 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		public Text chatMessages;
 		[Tooltip("Field containing the message to be sent")]
 		public InputField InputFieldMessage;
+
+
+		#endregion
+
+
+		#region Private Variables
 	
+
 		static int _previousScene;
+
+
+		#endregion
+
 
 		#region MonoBehaviour Callback
 
 
-		// Use this for initialization
 		void Start () {
 			Instance = this;
 			_previousScene = 0;
@@ -51,10 +64,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			ExitGames.Client.Photon.Chat.AuthenticationValues authValues = new ExitGames.Client.Photon.Chat.AuthenticationValues ();
 			authValues.UserId = UserName;
 			authValues.AuthType = ExitGames.Client.Photon.Chat.CustomAuthenticationType.None;
-			chatClient.Connect (PhotonNetwork.PhotonServerSettings.ChatAppID, "1", authValues);
+			chatClient.Connect (PhotonNetwork.PhotonServerSettings.ChatAppID, PhotonNetwork.gameVersion, authValues);
 		}
-		
-		// Update is called once per frame
+
 		void Update () {
 			if (chatClient != null)
 				chatClient.Service ();
@@ -73,12 +85,16 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			SceneManager.sceneLoaded -= OnSceneLoaded;
 		}
 
+
 		#endregion
 
 
 		#region Custom
 
 
+		/// <summary>
+		/// This function switches the channel to which the local player subscribe, depending on his role and the time of day.
+		/// </summary>
 		public void SwitchVillagerToWerewolf (bool isWerewolf) {
 			if (ChannelName == "villager#" + RoomName) {
 				ChannelName = "werewolf#" + RoomName;
@@ -98,8 +114,11 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			ChangeChannel (_previousScene, scene.buildIndex);
 			_previousScene = scene.buildIndex;
 		}
-
-		//Be careful: the # between the name of the channel and the RoomName is very important to avoid displaying the long RoomName!
+			
+		/// <summary>
+		/// This function switches the channel to which the local player subscribe, depending on the scene he has loaded.
+		/// Be careful: the # between the name of the channel and the RoomName is very important to avoid displaying the long RoomName!
+		/// </summary>
 		void ChangeChannel(int formerSceneIndex, int newSceneIndex) {
 			if(PhotonNetwork.inRoom)
 				RoomName = PhotonNetwork.room.Name;
@@ -143,7 +162,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			}
 		}
 
-		/// <summary>To avoid that the Editor becomes unresponsive, disconnect all Photon connections in OnApplicationQuit.</summary>
+		/// <summary>
+		/// To avoid that the Editor becomes unresponsive, disconnect all Photon connections in OnApplicationQuit.
+		/// </summary>
 		public void OnApplicationQuit()
 		{
 			if (chatClient != null) {
@@ -162,36 +183,37 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			}
 		}
 
+		/// <summary>
+		/// This function checks if you can send a message and if there is a message to send, then sends it. It is called by the enter key.
+		/// </summary>
 		public void OnEnterSend()
 		{
 			if (InputFieldMessage != null && InputFieldMessage.text != "") {
 				if (PlayerManager.LocalPlayerInstance != null && PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ().isAlive == false)
 					chatMessages.text += "[You are dead]\n";
 				else
-					SendChatMessage (InputFieldMessage.text);
+					chatClient.PublishMessage(ChannelName, InputFieldMessage.text);
 				InputFieldMessage.text = "";
 			}
 		}
 
+		/// <summary>
+		/// This function checks if you can send a message and if there is a message to send, then sends it. It is called by clicking the button "Send".
+		/// </summary>
 		public void OnClickSend()
 		{
 			if (InputFieldMessage != null && InputFieldMessage.text != "") {
 				if (PlayerManager.LocalPlayerInstance != null && PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ().isAlive == false)
 					chatMessages.text += "[You are dead]\n";
 				else
-					SendChatMessage(InputFieldMessage.text);
+					chatClient.PublishMessage(ChannelName, InputFieldMessage.text);
 				InputFieldMessage.text = "";
 			}
 		}
 
-		public void SendChatMessage(string inputLine)
-		{
-			if (string.IsNullOrEmpty(inputLine))
-				return;
-
-			chatClient.PublishMessage(ChannelName, inputLine);
-		}
-
+		/// <summary>
+		/// This eliminates the Numbers at the end of the channel name.
+		/// </summary>
 		static string GetChannelName(string channelName)
 		{
 			if (channelName == "")

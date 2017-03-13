@@ -7,9 +7,10 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 {
 	/// <summary>
 	/// Role manager. 
-	/// Handles roles of players.
+	/// Handles roles of players and checks if the game is finished or not.
 	/// </summary>
 	public class RoleManager : Photon.PunBehaviour {
+		
 		#region Public Variables
 
 
@@ -27,6 +28,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 
 		GameObject _endgamePanel;
+		Text _infoText;
+		Text _dayText;
+		Text _nightText;
 		int _nbWerewolfAlive = 0;
 
 
@@ -39,53 +43,77 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		void Start () {
 			nbPlayerAlive = PhotonNetwork.room.PlayerCount;
 
-			_endgamePanel = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (3).gameObject;
+			_infoText = transform.GetChild (1).GetChild (0).GetComponentInChildren<Text> ();
+			_dayText = transform.GetChild (1).GetChild (1).GetComponentInChildren<Text> ();
+			_nightText = transform.GetChild (1).GetChild (2).GetComponentInChildren<Text> ();
+
+			_endgamePanel = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (4).gameObject;
 			_endgamePanel.SetActive (false);
+			// The average number of Werewolf per game is 1/3 of the total number of player
 			_nbWerewolfAlive = Mathf.RoundToInt (PhotonNetwork.room.PlayerCount / 3);
 
 			if (PhotonNetwork.isMasterClient) {
 				GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
+				// We need to shuffle both:
+				// - the player list, otherwise the role are attributed in the order of connection
+				int randomIndex;
 				for (int i = 0; i < players.Length; i++) {
-					GameObject temp = players[i];
-					int randomIndex = Random.Range(i, players.Length);
-					players[i] = players[randomIndex];
-					players[randomIndex] = temp;
+					GameObject temp = players [i];
+					randomIndex = Random.Range(i, players.Length);
+					players [i] = players [randomIndex];
+					players [randomIndex] = temp;
 				}
-
+				// - the player house, otherwise the roles are detected by the position in the village
+				List<int> houseIndexes = new List<int> ();
 				for (int i = 0; i < players.Length; i++) {
+					randomIndex = Random.Range(0, players.Length);
+					while (houseIndexes.Contains (randomIndex))
+						randomIndex = Random.Range (0, players.Length);
+					houseIndexes.Add (randomIndex);
+
 					string role;
 					if (i <= _nbWerewolfAlive - 1)
 						role = "Werewolf";
-					else if (i == _nbWerewolfAlive)
+					else if (players.Length > 2 && i == _nbWerewolfAlive)
 						role = "Seer";
+					else if (players.Length > 3 && i == _nbWerewolfAlive + 1)
+						role = "Witch";
+					else if (players.Length > 4 && i == _nbWerewolfAlive + 2)
+						role = "Hunter";
 					else
 						role = "Villager";
-					players [i].GetComponent<PhotonView> ().RPC("SetPlayerRoleAndTent", PhotonTargets.All, new object[] { role, tents.GetChild(i).name });
+					players [i].GetComponent<PhotonView> ().RPC("SetPlayerRoleAndTent", PhotonTargets.All, new object[] { role, tents.GetChild(houseIndexes[i]).name });
 				}
 			}
 		}
 		
-		// Update is called once per frame
 		void Update () {
-			Text infoText = GetComponentInChildren<Text> ();
-			infoText.text = "~ Day" + VoteManager.Instance.countDay + " / Night" + VoteManager.Instance.countNight + " ~\nHere are all the roles:\n~~~~~~~~~~~~~~\n";
-
+			if (VoteManager.Instance != null) {
+				_dayText.text = "Day" + VoteManager.Instance.countDay;
+				_nightText.text = "Night" + VoteManager.Instance.countNight;
+			} else {
+				_dayText.text = "Day1";
+				_nightText.text = "Night0";
+			}
+			
 			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
 			nbPlayerAlive = players.Length;
 			_nbWerewolfAlive = 0;
+
+			_infoText.text = "";
 			foreach (GameObject player in players) {
 				PlayerManager pM = player.GetComponent<PlayerManager> ();
-				infoText.text += PlayerManager.GetProperName (player.name);
+				_infoText.text += PlayerManager.GetProperName (player.name);
 				if (pM.isAlive) {
 					if (pM.role == "Werewolf")
 						_nbWerewolfAlive++;
 					if (!pM.isDiscovered)
-						infoText.text += " [Alive] > Unknown\n";
+						_infoText.text += " > ( ? )\n";
 					else
-						infoText.text += " [Alive] > " + pM.role + "\n";
+						_infoText.text += " > " + pM.role + "\n";
 				} else {					
 					nbPlayerAlive--;
-					infoText.text += " [Dead] > " + pM.role + "\n";
+					_infoText.text += " [┼] > " + pM.role + "\n";
 				}
 			}
 			
@@ -100,7 +128,13 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region Custom
 
 
+		/// <summary>
+		/// The conditions of victory depends on your being a Werewolf or not: if there is only Werewolves left,they win! If they are all dead, everyone else win!
+		/// </summary>
 		bool CheckIfGameFinished () {
+			if (DayNightCycle.isDebugging)
+				return false;
+			
 			string winnerRole = "";
 			if (nbPlayerAlive == _nbWerewolfAlive)
 				winnerRole = "Werewolf";
@@ -109,20 +143,28 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			else
 				return false;
 
-			string pMrole = PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ().role;
+			PlayerManager localPM = PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ();
+			string cardToDisplay;
 			string victoryText;
-			if (winnerRole == "Werewolf" && pMrole == winnerRole || winnerRole == "Villager" && pMrole != "Werewolf")
-				victoryText = "Victory!";
-			else
-				victoryText = "Defeat...";
+			if (localPM.isAlive) {
+				cardToDisplay = winnerRole;
+				string localPlayerRole = localPM.role;
+				if (winnerRole == "Werewolf" && localPlayerRole == winnerRole || winnerRole == "Villager" && localPlayerRole != "Werewolf")
+					victoryText = "Victory!";
+				else
+					victoryText = "Defeat...";
+			} else {
+				cardToDisplay = "Dead";
+				victoryText = "You died during the game...";
+			}
 			victoryText += "\n\nTo leave the game, click the button above.";
 			_endgamePanel.transform.GetChild(1).GetComponent<Text> ().text = victoryText;
 
-			Sprite winnerSprite = Resources.Load ("Cards/" + winnerRole, typeof(Sprite)) as Sprite;
-			if (winnerSprite != null)
-				_endgamePanel.transform.GetChild (0).GetComponent<Image> ().sprite = winnerSprite;
+			Sprite displayedSprite = Resources.Load ("Cards/" + cardToDisplay, typeof(Sprite)) as Sprite;
+			if (displayedSprite != null)
+				_endgamePanel.transform.GetChild (0).GetComponent<Image> ().sprite = displayedSprite;
 			else
-				Debug.Log ("No image was found for " + winnerRole);
+				Debug.Log ("No image was found for " + cardToDisplay);
 
 			return true;
 		}

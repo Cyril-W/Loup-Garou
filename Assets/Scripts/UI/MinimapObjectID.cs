@@ -8,7 +8,7 @@ using UnityEngine.SceneManagement;
 namespace Com.Cyril_WIRTZ.Loup_Garou
 {
 	/// <summary>
-	/// Placed on an object your want to track the position on your minimap. The image shown on the minimap is customable.
+	/// Placed on an object your want to track on your minimap. The image shown on the minimap is customable.
 	/// </summary>
 	public class MinimapObjectID : MonoBehaviour {
 
@@ -17,10 +17,10 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		[Tooltip("Custom color used to show the position of the gameObject on the minimap")]
 		public Color color;
 
-		// Use this for initialization
 		void Start () {
 			if (gameObject.CompareTag ("Player") == false || gameObject != PlayerManager.LocalPlayerInstance)
 				Minimap.Instance.RegisterMinimapObject (gameObject, image, color);
 		}
+
 	}
 }

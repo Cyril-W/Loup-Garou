@@ -6,16 +6,17 @@ using UnityEngine.UI;
 namespace Com.Cyril_WIRTZ.Loup_Garou
 {
 	/// <summary>
-	/// Player name input field. Let the user input his name, will appear above the player in the game.
+	/// Player name input field. Let the user input his name, that will appear above the player during the game.
 	/// </summary>
 	[RequireComponent(typeof(InputField))]
-	public class PlayerNameInputField : MonoBehaviour
-	{
+	public class PlayerNameInputField : MonoBehaviour {
+		
 		#region Private Variables
 
-
-		// Store the PlayerPref Key to avoid typos
-		static string playerNamePrefKey = "PlayerName";
+		/// <summary>
+		/// Store the PlayerPref Key to avoid typos
+		/// </summary>
+		static string _playerNamePrefKey = "PlayerName";
 
 
 		#endregion
@@ -24,19 +25,14 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region MonoBehaviour CallBacks
 
 
-		/// <summary>
-		/// MonoBehaviour method called on GameObject by Unity during initialization phase.
-		/// </summary>
 		void Start () {
-
-
 			string defaultName = "";
 			InputField _inputField = this.GetComponent<InputField>();
 			if (_inputField!=null)
 			{
-				if (PlayerPrefs.HasKey(playerNamePrefKey))
+				if (PlayerPrefs.HasKey(_playerNamePrefKey))
 				{
-					defaultName = PlayerPrefs.GetString(playerNamePrefKey);
+					defaultName = PlayerPrefs.GetString(_playerNamePrefKey);
 
 					if (!PhotonNetwork.connected)
 						defaultName = PlayerManager.GetProperName (defaultName);
@@ -44,7 +40,6 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					_inputField.text = defaultName;
 				}
 			}
-
 
 			PhotonNetwork.playerName =  defaultName;
 		}
@@ -65,8 +60,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			// #Important
 			PhotonNetwork.playerName = value + " "; // force a trailing space string in case value is an empty string, else playerName would not be updated.
 
-
-			PlayerPrefs.SetString(playerNamePrefKey,value);
+			PlayerPrefs.SetString(_playerNamePrefKey,value);
 		}
 
 
