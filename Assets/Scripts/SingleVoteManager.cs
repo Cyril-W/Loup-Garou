@@ -118,7 +118,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			if (reason == "Hunter")
 				_localPM.hunterBulletAvailable = false;
 
-			VoteManager.singleVotes.Remove (this);
+			VoteManager.Instance.singleVotes.Remove (this);
 			Destroy(gameObject);
 		}
 

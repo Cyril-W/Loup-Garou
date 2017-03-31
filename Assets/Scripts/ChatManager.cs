@@ -54,7 +54,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 			DontDestroyOnLoad (gameObject);
 
-			UserName = PhotonNetwork.player.NickName;
+			UserName = PhotonNetwork.playerName;
 			ChannelName = "global#";
 			RoomName = "";
 			
@@ -145,7 +145,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					chatClient.Unsubscribe (new string[] { "global#" });
 				} 
 				else if (formerSceneIndex == 2) { //from Main
-					Debug.Log("Error: you cannot go from Main to Lobby");
+					// nothing to publish because everybody leaves the main when masterclient clicks the button
+					chatClient.Unsubscribe (new string[] { "villager#" + RoomName });
 				} 
 			} 
 			else if (newSceneIndex == 2) { // to Main scene

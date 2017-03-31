@@ -17,13 +17,11 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		[Tooltip("The Panel used to display who is ready to go")]
 		public Transform readyPanel;
-		[Tooltip("The Sprite used to display when you're ready to go")]
-		public Sprite readySprite;
-		[Tooltip("The Panel used to display when you're not ready to go")]
-		public Sprite notReadySprite;
 		[Tooltip("The center of the world around which players are spawned")]
 		public Transform fireCamp;
+
 		public int nbReadyNeeded;
+
 		public bool isDebugging = false;
 
 
@@ -43,19 +41,25 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 
 		void Start () {
-			nbReadyNeeded = 2;
+			if (isDebugging)
+				nbReadyNeeded = 2;
+			else
+				nbReadyNeeded = 6;
 
 			ChatManager.RoomName = PhotonNetwork.room.Name;
 
 			_howManyReady = readyPanel.GetChild(2).GetComponent<Text>();
 
-			Button[] swapButtons = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild(4).GetChild(2).GetComponentsInChildren<Button>();
-			swapButtons [0].onClick.AddListener (delegate {
+			Button[] swapGenderButtons = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild(4).GetChild(2).GetComponentsInChildren<Button>();
+			swapGenderButtons [0].onClick.AddListener (delegate {
 				PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ().SwapGender ();
 			});
-			swapButtons [1].onClick.AddListener (delegate {
+			swapGenderButtons [1].onClick.AddListener (delegate {
 				PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ().SwapGender ();
 			});
+
+			if (PhotonNetwork.room.PlayerCount > 1)
+				ResetPlayerPosition ();			
 		}
 
 		void Update () {
@@ -132,21 +136,38 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// This event is triggered when the local player clicks on the button "Ready".
 		/// </summary>
 		public void SetReadyStatus() {
-			Button readyButton = readyPanel.GetChild (1).GetComponentInChildren<Button> ();
+			Text readyText = readyPanel.GetChild (1).GetComponentInChildren<Text> ();
 			PlayerManager pM = PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ();
 
 			if (pM.role == "Ready") {
-				readyButton.image.sprite = notReadySprite;
-				readyButton.image.color = Color.red;
-				readyButton.GetComponentInChildren<Text> ().text = "No > Yes";
+				readyText.text = "No !";
+				readyText.color = Color.red;
 				readyPanel.transform.parent.GetChild (0).gameObject.SetActive (true);
 				pM.role = "";
-			} else if (pM.role == "") {
-				readyButton.image.sprite = readySprite;
-				readyButton.image.color = Color.green;
-				readyButton.GetComponentInChildren<Text> ().text = "Yes > No";
+			} else {
+				readyText.text = "Yes !";
+				readyText.color = Color.green;
 				readyPanel.transform.parent.GetChild (0).gameObject.SetActive (false);
 				pM.role = "Ready";
+			}
+		}
+
+		/// <summary>
+		/// This function is called when the master client decided to return to lobby after the game finished.
+		/// </summary>
+		void ResetPlayerPosition() {
+			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
+			int playerRank = 0;
+			foreach (GameObject player in players) {
+				if (player == PlayerManager.LocalPlayerInstance) {
+					float angle = (playerRank * 2f * Mathf.PI / PhotonNetwork.room.MaxPlayers); // get the angle for this step (in radians, not degrees)
+					float x = Mathf.Cos (angle) * 6f;
+					float z = Mathf.Sin (angle) * 6f;
+
+					Vector3 positionOnCircle = new Vector3 (x, 3f, z);
+					player.transform.position = positionOnCircle + fireCamp.position;
+				}
+				playerRank++;
 			}
 		}
 

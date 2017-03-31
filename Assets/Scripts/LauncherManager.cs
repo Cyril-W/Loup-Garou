@@ -105,16 +105,16 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		{
 			transform.GetChild(0).GetChild (1).gameObject.SetActive (true);
 			transform.GetChild(0).GetChild (2).gameObject.SetActive (true);
-			if (transform.GetChild (0).GetChild (0).GetChild (2).gameObject.activeSelf == true) {
+			GameObject okButton = transform.GetChild (0).GetChild (0).GetChild (2).gameObject;
+			if (okButton.activeSelf == true) {
 				InputField inputField = transform.GetChild (0).GetChild (0).GetComponentInChildren<InputField> ();
-				inputField.text += Random.Range (1000, 9999).ToString();
-				inputField.DeactivateInputField ();
-				inputField.interactable = false;
-				if (GameObject.FindGameObjectWithTag ("Chat") == null)
+				if (GameObject.FindGameObjectWithTag ("Chat") == null) {
+					int userID = (int)Random.Range (Mathf.Pow(10, PlayerManager.sizeOfID - 1), Mathf.Pow(10, PlayerManager.sizeOfID));
+					inputField.GetComponent<PlayerNameInputField> ().SetPlayerName (inputField.text + userID.ToString());
 					Instantiate (chatCanvas);
-				else
-					inputField.text = ChatManager.UserName;
-				transform.GetChild (0).GetChild (0).GetChild (2).gameObject.SetActive (false);
+				}
+				inputField.interactable = false;
+				okButton.SetActive (false);
 			}
 		}
 

@@ -88,6 +88,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					description.text += "When you're not the Mayor, be clever and stay kind with him, as when he will die, he will have to chose his successor.";
 				else if (_roleSprites [currentSprite].name == "Witch")
 					description.text += "The Witch's aim is to eliminate all Werewolves from the game. To achieve this, she can kill and/or revive the Werewolves' victim once per game.";
+				else if (_roleSprites [currentSprite].name == "LittleGirl")
+					description.text += "The Little Girl's aim is to eliminate all Werewolves from the game. To achieve this, she can spy them at night, but if so, she is revealed to them!";
 				else
 					description.text += "This role has not been implemented yet...";
 			}

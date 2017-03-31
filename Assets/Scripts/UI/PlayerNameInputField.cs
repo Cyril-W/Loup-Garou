@@ -33,15 +33,10 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				if (PlayerPrefs.HasKey(_playerNamePrefKey))
 				{
 					defaultName = PlayerPrefs.GetString(_playerNamePrefKey);
-
-					if (!PhotonNetwork.connected)
-						defaultName = PlayerManager.GetProperName (defaultName);
 					
 					_inputField.text = defaultName;
 				}
 			}
-
-			PhotonNetwork.playerName =  defaultName;
 		}
 
 
@@ -60,7 +55,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			// #Important
 			PhotonNetwork.playerName = value + " "; // force a trailing space string in case value is an empty string, else playerName would not be updated.
 
-			PlayerPrefs.SetString(_playerNamePrefKey,value);
+			PlayerPrefs.SetString(_playerNamePrefKey,PlayerManager.GetProperName(value));
 		}
 
 

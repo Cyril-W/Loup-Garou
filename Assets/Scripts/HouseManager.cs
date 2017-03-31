@@ -247,7 +247,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				if (DayNightCycle.GetCurrentState () == 6 && localPM.seerRevealingAvailable && ownerPM.isDiscovered == false)
 					_actionButtons [3].SetActive (true);
 				
-				if (_owner.name == VoteManager.mostVotedPlayer) {
+				if (_owner.name == VoteManager.Instance.mostVotedPlayer) {
 					_mostVotedImage.SetActive (true);
 					if (DayNightCycle.GetCurrentState () == 8 && localPM.lifePotionAvailable)
 						_actionButtons [1].SetActive (true);					

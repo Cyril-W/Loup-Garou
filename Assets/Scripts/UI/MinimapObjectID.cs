@@ -18,8 +18,26 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		public Color color;
 
 		void Start () {
-			if (gameObject.CompareTag ("Player") == false || gameObject != PlayerManager.LocalPlayerInstance)
+			if (gameObject != PlayerManager.LocalPlayerInstance)
 				Minimap.Instance.RegisterMinimapObject (gameObject, image, color);
+		}
+
+		void Update() {
+			if (gameObject.CompareTag ("Player")) {
+				PlayerManager pM = gameObject.GetComponent<PlayerManager> ();
+				if (!pM.isAlive) {
+					color = Color.clear;
+					Minimap.Instance.RecolorMinimapObject (gameObject);
+				} else {
+					if (pM.littleGirlSpying) {
+						color = Color.yellow;
+						Minimap.Instance.RecolorMinimapObject (gameObject);
+					} else if (pM.role == "LittleGirl") {
+						color = Color.blue;
+						Minimap.Instance.RecolorMinimapObject (gameObject);
+					}
+				}
+			}
 		}
 
 	}

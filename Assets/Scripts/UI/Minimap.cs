@@ -36,7 +36,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region Private Variables
 
 
-		static List<MinimapObject> _objects = new List<MinimapObject> ();
+		List<MinimapObject> _objects = new List<MinimapObject> ();
 
 
 		#endregion
@@ -48,7 +48,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		void Awake () {
 			Instance = this;
 
-			PlayerAnimatorManager.compas = transform.GetChild(0);
+			PlayerAnimatorManager.compas = transform.parent.GetChild(0);
 		}
 
 		void Update () {
@@ -66,6 +66,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// </summary>
 		public void RegisterMinimapObject (GameObject owner, Sprite sprite, Color color) {
 			Image image = (Instantiate (minimapDotPrefab)).GetComponent<Image>();
+			image.name = owner.name;
 			image.sprite = sprite;
 			image.color = color;
 			image.transform.SetParent (transform);
@@ -98,7 +99,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		void DrawMinimapDots () {
 			for (int i = 0; i < _objects.Count; i++) {
 				MinimapObject obj = _objects [i];
-				if (obj.Owner != null) {
+				if (obj.Owner != null && obj.Icon != null) {
 					Transform playerPos = PlayerManager.LocalPlayerInstance.transform;
 					Vector3 minimapPos = (obj.Owner.transform.position - playerPos.position);
 					float distToObject = Vector3.Distance (playerPos.position, obj.Owner.transform.position) * mapScale;
@@ -107,8 +108,15 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					minimapPos.z = distToObject * Mathf.Sin (deltaY * Mathf.Deg2Rad);
 
 					obj.Icon.transform.position = new Vector3 (minimapPos.x, minimapPos.z, 0) + transform.position;
-				} else
+				} else {
+					if (obj.Owner != null)
+						Debug.Log ("Owner: " + obj.Owner);
+					else if (obj.Icon != null)
+						Debug.Log ("Icon: " + obj.Icon.name + ".");
+					else
+						Debug.Log ("No information");
 					Minimap.Instance.RemoveMinimapObject (obj);
+				}
 			}
 		}
 

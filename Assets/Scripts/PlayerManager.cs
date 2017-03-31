@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.EventSystems;
 
 namespace Com.Cyril_WIRTZ.Loup_Garou
 {
@@ -36,6 +37,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		public bool lifePotionAvailable = false;
 		public bool seerRevealingAvailable = false;
 		public bool hunterBulletAvailable = false;
+		public bool littleGirlSpying = false;
+
+		public static int sizeOfID = 4;
 
 
 		#endregion
@@ -62,9 +66,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			gameObject.name = photonView.owner.NickName;
 			GetComponentInChildren<TextMesh> ().text = PlayerManager.GetProperName(gameObject.name);
 
-			if(photonView.isMine)
+			if (photonView.isMine)
 				isDiscovered = true;
-
+							
 			OnSceneLoaded (SceneManager.GetActiveScene(), LoadSceneMode.Single);
 		}
 			
@@ -78,6 +82,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					transform.GetChild (0).gameObject.SetActive (isMale);
 					transform.GetChild (1).gameObject.SetActive (!isMale);
 					transform.GetChild (2).gameObject.SetActive (false);
+					if (photonView.isMine && role == "LittleGirl")
+						PlayerAnimatorManager.compas.GetComponent<Image> ().color = (littleGirlSpying) ? Color.yellow : Color.red;
 				} else {
 					if (photonView.isMine) {	
 						if (VoteManager.Instance.mayorName == gameObject.name) {
@@ -86,7 +92,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 						}
 						if (hunterBulletAvailable)
 							VoteManager.Instance.StartSingleVote ("Hunter");
-						if (VoteManager.singleVotes.Count == 0) {
+						if (VoteManager.Instance.singleVotes.Count == 0) {
 							GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
 							foreach (GameObject player in players)
 								player.GetComponent<PlayerManager> ().isDiscovered = true;
@@ -146,6 +152,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 				GetComponent<MinimapObjectID> ().enabled = false;
 				GetComponent<PlayerAnimatorManager> ().enabled = false;
+
+				GetComponentInChildren<TextMesh> ().text = PlayerManager.GetProperName(gameObject.name);
 			} else if (scene.buildIndex == 2) {
 				_rolePanel = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (1);
 				_votedPlayerText = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (3).GetComponentInChildren<Text> ();
@@ -162,15 +170,17 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				if(photonView.isMine) {
 					rends[1].material.color = Color.red;
 					rends[2].material.color = Color.red;
+					VoteManager.Instance.resetVoteButton.GetComponent<Button> ().onClick.AddListener (delegate {
+						ClearVotedPlayer ();
+					});
+					// clear the name of the local player to display it at the bottom of the screen 
+					_rolePanel.GetChild(4).GetComponentInChildren<Text> ().text = PlayerManager.GetProperName(gameObject.name);
+					GetComponentInChildren<TextMesh> ().text = "";
 				} else {
 					rends[1].material.color = Color.blue;
 					rends[2].material.color = Color.blue;
-				}
-
-				if (!photonView.isMine)
 					GetComponent<MinimapObjectID> ().enabled = true;
-				else
-					GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (3).GetComponentInChildren<Button> ().onClick.AddListener (delegate {	ClearVotedPlayer (); });
+				}
 				GetComponent<PlayerAnimatorManager> ().enabled = true;
 			}
 		}
@@ -179,14 +189,12 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// This eliminates the Numbers at the end of the player name.
 		/// </summary>
 		public static string GetProperName(string name) {
-			int nbToKeep = 0;
-			foreach (char c in name) {
-				if (c != ' ' && !char.IsNumber (c))
-					nbToKeep++;
-				else
-					return name.Substring (0, nbToKeep);
+			if (name == "")
+				return name;
+			else {
+				int isThereSpace = (name [name.Length - 1] == ' ') ? 1 : 0;
+				return name.Substring (0, name.Length - sizeOfID - isThereSpace);
 			}
-			return name;
 		}
 			
 		[PunRPC]
@@ -204,7 +212,28 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					deathPotionAvailable = true;
 				} else if (role == "Hunter")
 					hunterBulletAvailable = true;
+				else if (role == "LittleGirl") {					
+					EventTrigger trigger = GameObject.FindGameObjectWithTag("Canvas").transform.GetChild(0).GetChild(4).GetComponent<EventTrigger>( );
+					EventTrigger.Entry entryDown = new EventTrigger.Entry( );
+					entryDown.eventID = EventTriggerType.PointerDown;
+					entryDown.callback.AddListener( ( data ) => { OnPointerDownDelegate( (PointerEventData)data ); } );
+					trigger.triggers.Add( entryDown );
+					EventTrigger.Entry entryUp = new EventTrigger.Entry( );
+					entryUp.eventID = EventTriggerType.PointerUp;
+					entryUp.callback.AddListener( ( data ) => { OnPointerUpDelegate( (PointerEventData)data ); } );
+					trigger.triggers.Add( entryUp );
+				}
 			}
+		}
+
+		public void OnPointerDownDelegate( PointerEventData data )
+		{
+			PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ().littleGirlSpying = true;
+		}
+
+		public void OnPointerUpDelegate( PointerEventData data )
+		{
+			PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ().littleGirlSpying = false;
 		}
 
 		[PunRPC]
@@ -250,6 +279,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 						roleName += (lifePotionAvailable ? "1" : "0") + (deathPotionAvailable ? "1" : "0");
 				} else if (role == "Hunter")
 					roleText = role + "\nYour aim is to eliminate all Werewolves from the game. To achieve this, you can shot dead someone when you get killed.";
+				else if (role == "LittleGirl")
+					roleText = role + "\nYour aim is to eliminate all Werewolves from the game. To achieve this, you can spy them at night (but get revealed to them !).";
 			}
 			Sprite roleSprite = Resources.Load ("Cards/" + roleName, typeof(Sprite)) as Sprite;
 			_rolePanel.GetChild(0).GetComponentInChildren<Text> ().text = roleText;
@@ -303,12 +334,14 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				stream.SendNext(isMale);
 				stream.SendNext(votedPlayer);
 				stream.SendNext(role);
+				stream.SendNext (littleGirlSpying);
 			}else{
 				// Network player, receive data
 				this.isAlive = (bool)stream.ReceiveNext();
 				this.isMale = (bool)stream.ReceiveNext();
 				this.votedPlayer = (string)stream.ReceiveNext ();
 				this.role = (string)stream.ReceiveNext ();
+				this.littleGirlSpying = (bool)stream.ReceiveNext ();
 			}
 		}
 

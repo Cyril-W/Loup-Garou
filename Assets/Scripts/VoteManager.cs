@@ -31,8 +31,13 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		public int countDay = 1;
 		public int countNight = 0;
 
-		public static string mostVotedPlayer;
-		public static List<SingleVoteManager> singleVotes = new List<SingleVoteManager>();
+		public string mostVotedPlayer;
+		public List<SingleVoteManager> singleVotes = new List<SingleVoteManager>();
+		/// <summary>
+		/// The button used by the local Player to reset his vote only during the voting phases.
+		/// </summary>
+		public GameObject resetVoteButton;
+
 		public static VoteManager Instance;
 
 
@@ -42,14 +47,10 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region Private Variables
 
 
-		Text _clockDescriptionText;
 		Text _infoText;
-		Text _mayorNameText;
 		PlayerManager _localPM;
-		/// <summary>
-		/// The button used by the local Player to reset his vote only during the voting phases.
-		/// </summary>
-		GameObject _resetVoteButton;
+		GameObject _minimapHidingSeal;
+		GameObject _spyButton;
 		static List<string> _votedPlayers;
 		int _formerState = 1;
 
@@ -60,12 +61,15 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		#region MonoBehaviour CallBacks
 
 
-		void Start () {
+		void Awake () {
 			Instance = this;
-			_clockDescriptionText = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (2).GetChild(0).GetComponentInChildren<Text> ();
-			_infoText = transform.GetChild (1).GetChild (0).GetComponentInChildren<Text> ();
-			_mayorNameText = transform.GetChild (1).GetChild (2).GetComponentInChildren<Text> ();
-			_resetVoteButton = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (3).GetComponentInChildren<Button> ().gameObject;
+			_infoText = transform.GetChild (1).GetChild (1).GetComponentInChildren<Text> ();
+			resetVoteButton = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (3).GetComponentInChildren<Button> ().gameObject;
+			resetVoteButton.SetActive (false);
+			_minimapHidingSeal = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (0).GetChild (2).gameObject;
+			_minimapHidingSeal.SetActive (false);
+			_spyButton = _minimapHidingSeal.transform.parent.GetChild(4).gameObject;
+			_spyButton.SetActive(false);
 			_localPM = PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ();
 			_votedPlayers = new List<string> ();
 		}
@@ -75,8 +79,6 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				return;
 			
 			RefreshVotedPlayers ();
-
-			UpdateClockText ();
 
 			VoteSystem ();
 		}
@@ -93,6 +95,26 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			SceneManager.LoadScene(0);
 		}
 
+		void OnTriggerStay(Collider other) {
+			if (other.gameObject == PlayerManager.LocalPlayerInstance) {
+				Transform worldCanvas = transform.GetChild (1);
+				worldCanvas.GetChild (0).gameObject.SetActive (true);
+				if (worldCanvas.localScale.x <= 0.015f) 
+					worldCanvas.localScale += 0.0005f * Vector3.one;
+				if (worldCanvas.localPosition.y < 0.5f)
+					worldCanvas.localPosition += 0.1f * Vector3.up;
+
+			}
+		}
+
+		void OnTriggerExit(Collider other) {
+			if (other.gameObject == PlayerManager.LocalPlayerInstance) {
+				transform.GetChild (1).GetChild (0).gameObject.SetActive (false);
+				transform.GetChild (1).localScale = 0.005f * Vector3.one;
+				transform.GetChild (1).localPosition = -0.51f * Vector3.forward;
+			}
+		}
+
 
 		#endregion
 
@@ -101,7 +123,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 
 		/// <summary>
-		/// When the Leave button is clicked, this function disconnect erase the player from the game and disconnect him.
+		/// When the Leave button is clicked, this function erase the player from the all the single votes and disconnect him.
 		/// </summary>
 		public void LeaveRoom()
 		{
@@ -132,7 +154,6 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// Searches through all the players, updates the voted player list and check if there is a most voted player.
 		/// </summary>
 		void RefreshVotedPlayers() {
-			_mayorNameText.text = "Mayor:\n" + PlayerManager.GetProperName(mayorName);
 			_votedPlayers.Clear ();
 
 			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
@@ -145,6 +166,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					if (DayNightCycle.GetCurrentState() < 5 && player.name == mayorName)
 						_votedPlayers.Add (pM.votedPlayer);
 				}
+				if (player.name == mayorName)
+					_infoText.text += "[M] ";
 				_infoText.text += PlayerManager.GetProperName (player.name) + " > " + PlayerManager.GetProperName(pM.votedPlayer) + "\n";
 			}
 
@@ -202,49 +225,14 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		}
 
 		/// <summary>
-		/// This function indicates to all player what to do depending on the time of the day. It also (in)activate the resetVoteButton
-		/// </summary>
-		void UpdateClockText () {
-			bool resetVoteButtonActive = false;
-
-			if (DayNightCycle.GetCurrentState () == 1) {
-				if (countDay == 1)
-					_clockDescriptionText.text = "Welcome! You just woke up in the middle of a Village! You have time to explore it, for now.";
-				else
-					_clockDescriptionText.text = "Wake up! Look all around you, there may be few people who died during the night!";
-			} else if (DayNightCycle.GetCurrentState () == 2) {
-				if (countDay == 1)
-					_clockDescriptionText.text = "Time to discuss and vote for the new Mayor by clicking on the button in front of the player Tent!";
-				else
-					_clockDescriptionText.text = "Time to discuss and vote for the next victim by clicking on the button in front of the player Tent!";
-				if(_localPM.isAlive)
-					resetVoteButtonActive = true;
-			} else if (DayNightCycle.GetCurrentState () == 3) {
-				_clockDescriptionText.text = "Last chance to give your vote by clicking on the button located in front of player's tent! If you already voted, patience.";
-				if(_localPM.isAlive)
-					resetVoteButtonActive = true;
-			} else if (DayNightCycle.GetCurrentState () == 4)
-				_clockDescriptionText.text = "Votes have all been counted! Now finish your discussions and go back to your tent, night is falling upon the Village!";
-			else if (DayNightCycle.GetCurrentState () == 5)
-				_clockDescriptionText.text = "The night has just fallen, keep your eyes closed and wait until dawn!";
-			else if (DayNightCycle.GetCurrentState () == 6)
-				_clockDescriptionText.text = "Ô Seer, Ô All-Knowing, time for you to come out and discover someone's role!";
-			else if (DayNightCycle.GetCurrentState () == 7) {
-				_clockDescriptionText.text = "Time for the Werewolf to strike down their opponent! They are silently agreeing on who to devour...";
-				if (_localPM.isAlive && _localPM.role == "Werewolf")
-					resetVoteButtonActive = true;
-			} else if (DayNightCycle.GetCurrentState() == 8)
-				_clockDescriptionText.text = "Votes have all been counted! The victim's fate is now in the hands on the Witch!";
-
-			_resetVoteButton.SetActive (resetVoteButtonActive);
-		}
-
-		/// <summary>
 		/// This function handles the nomination of the Mayor, the killing of the Villager or Werewolf vote and the switching of Chat canals
 		/// </summary>
 		void VoteSystem() {
-			if (DayNightCycle.GetCurrentState () == 1) {
-				if (_formerState != DayNightCycle.GetCurrentState ()) {
+			if (_formerState != DayNightCycle.GetCurrentState ()) {
+				_formerState = DayNightCycle.GetCurrentState ();
+				DayNightCycle.Instance.UpdateClockText (true);
+
+				if (_formerState == 1) {
 					// This prevents the Witch from being detected because she's outside before anyone else
 					if (_localPM.role == "Witch")
 						_localPM.GoHome ();
@@ -259,32 +247,28 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					} else
 						_localPM.votedPlayer = "";
 					_localPM.gameObject.GetComponent<Light> ().enabled = false;
+					_minimapHidingSeal.SetActive (false);
 					countDay++;
 					if (!_localPM.isAlive || _localPM.role == "Werewolf")
 						ChatManager.Instance.SwitchVillagerToWerewolf (true);
 					else
-						ChatManager.Instance.SwitchVillagerToWerewolf (false);	
-					
-					_formerState = DayNightCycle.GetCurrentState ();
-				}
-			} else if (DayNightCycle.GetCurrentState () == 2) {
-				// We make sure that the future mayor is being elected by a single vote before checking
-				if (countDay > 1 && _formerState != DayNightCycle.GetCurrentState () && singleVotes.Find (v => v.reason == "Mayor" ) == null) {
-					CheckOrSetMayor ();
+						ChatManager.Instance.SwitchVillagerToWerewolf (false);
+				} else if (_formerState == 2) {
+					if (countDay > 1 && singleVotes.Find (v => v.reason == "Mayor") == null)
+						CheckOrSetMayor ();
+
+					if (_localPM.isAlive)
+						resetVoteButton.SetActive (true);
 
 					_formerState = DayNightCycle.GetCurrentState ();
-				}
-			}else if (DayNightCycle.GetCurrentState () == 4) {
-				if (_formerState != DayNightCycle.GetCurrentState ()) {
+				} else if (_formerState == 4) {
 					if (countDay == 1 && PhotonNetwork.isMasterClient)
 						mayorName = mostVotedPlayer;
 					else if (countDay > 1 && _localPM.gameObject.name == mostVotedPlayer)
 						_localPM.isAlive = false;						
 
-					_formerState = DayNightCycle.GetCurrentState ();
-				}
-			} else if (DayNightCycle.GetCurrentState () == 5) {
-				if (_formerState != DayNightCycle.GetCurrentState ()) {
+					resetVoteButton.SetActive (false);
+				} else if (_formerState == 5) {
 					_localPM.votedPlayer = "";
 					_localPM.gameObject.GetComponent<Light> ().enabled = true;
 					countNight++;
@@ -295,8 +279,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 					// Each night, the Seer can reveal someone's role
 					if (_localPM.role == "Seer")
-						_localPM.seerRevealingAvailable = true;
-					
+						_localPM.seerRevealingAvailable = true;					
+
 					// The first night, all Werewolves discover each other
 					if (countNight == 1 && _localPM.role == "Werewolf") {
 						GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
@@ -305,25 +289,40 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 							if (pM.role == "Werewolf")
 								pM.isDiscovered = true;
 						}
-					}						
-
-					_formerState = DayNightCycle.GetCurrentState ();
-				}
-			} else if (DayNightCycle.GetCurrentState () == 7) {
-				if (_formerState != DayNightCycle.GetCurrentState ()) {
+					}	
+				} else if (_formerState == 6) {
+					if (_localPM.isAlive && _localPM.role != "Seer")
+						_minimapHidingSeal.SetActive (true);
+				} else if (_formerState == 7) {
 					// This prevents the Seer from being detected because she's outside when the Werewolves go out
-					if (_localPM.role == "Seer")
+					if (_localPM.role == "Seer") {
 						_localPM.GoHome ();
-
-					_formerState = DayNightCycle.GetCurrentState ();
-				}
-			} else if (DayNightCycle.GetCurrentState () == 8) {
-				if (_formerState != DayNightCycle.GetCurrentState ()) {
+						_minimapHidingSeal.SetActive (true);
+					} else if (_localPM.role == "Werewolf") {
+						_minimapHidingSeal.SetActive (false);
+						if (_localPM.isAlive)
+							resetVoteButton.SetActive (true);						
+					}
+					
+					// During this phase, the Little Girl can spy the Werewolves by clicking the button "Spy"
+					if (_localPM.role == "LittleGirl" && _localPM.isAlive)
+						_spyButton.SetActive (true);					
+				} else if (_formerState == 8) {
 					// This prevents Werewolves from being detected because they are outside when the Witch go out
-					if (_localPM.role == "Werewolf")
+					if (_localPM.role == "Werewolf") {
 						_localPM.GoHome ();
+						_minimapHidingSeal.SetActive (true);
+						resetVoteButton.SetActive (false);
+					}
 
-					_formerState = DayNightCycle.GetCurrentState ();
+					if (_localPM.role == "LittleGirl") {
+						_minimapHidingSeal.SetActive (true);
+						_localPM.littleGirlSpying = false;
+						_spyButton.SetActive(false);
+					}
+
+					if (_localPM.role == "Witch")
+						_minimapHidingSeal.SetActive (false);	
 				}
 			}
 		}
