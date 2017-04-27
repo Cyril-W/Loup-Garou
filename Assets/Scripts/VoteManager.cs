@@ -53,6 +53,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		GameObject _spyButton;
 		static List<string> _votedPlayers;
 		int _formerState = 1;
+		AudioSource _audioSource;
 
 
 		#endregion
@@ -63,7 +64,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		void Awake () {
 			Instance = this;
-			_infoText = transform.GetChild (1).GetChild (1).GetComponentInChildren<Text> ();
+			_infoText = transform.GetChild (1).GetChild (2).GetComponentInChildren<Text> ();
 			resetVoteButton = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (3).GetComponentInChildren<Button> ().gameObject;
 			resetVoteButton.SetActive (false);
 			_minimapHidingSeal = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (0).GetChild (2).gameObject;
@@ -72,6 +73,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			_spyButton.SetActive(false);
 			_localPM = PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ();
 			_votedPlayers = new List<string> ();
+			_audioSource = GetComponent<AudioSource> ();
 		}
 
 		void Update () {
@@ -98,7 +100,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		void OnTriggerStay(Collider other) {
 			if (other.gameObject == PlayerManager.LocalPlayerInstance) {
 				Transform worldCanvas = transform.GetChild (1);
-				worldCanvas.GetChild (0).gameObject.SetActive (true);
+				worldCanvas.GetChild (2).gameObject.SetActive (true);
 				if (worldCanvas.localScale.x <= 0.015f) 
 					worldCanvas.localScale += 0.0005f * Vector3.one;
 				if (worldCanvas.localPosition.y < 0.5f)
@@ -109,7 +111,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		void OnTriggerExit(Collider other) {
 			if (other.gameObject == PlayerManager.LocalPlayerInstance) {
-				transform.GetChild (1).GetChild (0).gameObject.SetActive (false);
+				transform.GetChild (1).GetChild (2).gameObject.SetActive (false);
 				transform.GetChild (1).localScale = 0.005f * Vector3.one;
 				transform.GetChild (1).localPosition = -0.51f * Vector3.forward;
 			}
@@ -160,9 +162,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			_infoText.text = "";
 			foreach (GameObject player in players) {
 				PlayerManager pM = player.GetComponent<PlayerManager> ();
-				if (pM.votedPlayer != "") {
+				if (pM.votedPlayer != "" && pM.isAlive) {
 					_votedPlayers.Add (pM.votedPlayer);
-					// Double vote of the mayor doesn't count during the night if he's a Werewolf!
+					// Double vote of the Mayor doesn't count during the night if he's a Werewolf!
 					if (DayNightCycle.GetCurrentState() < 5 && player.name == mayorName)
 						_votedPlayers.Add (pM.votedPlayer);
 				}
@@ -237,12 +239,14 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					if (_localPM.role == "Witch")
 						_localPM.GoHome ();
 					if (mostVotedPlayer != "") {
-						if (_localPM.gameObject.name == mostVotedPlayer)
-							_localPM.isAlive = false;
-						GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
-						foreach (GameObject player in players) {
-							if (player.name == mostVotedPlayer && player.GetComponent<PlayerManager> ().isAlive == false)
-								_localPM.votedPlayer = "";
+						if (PhotonNetwork.isMasterClient) {
+							GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
+							foreach (GameObject player in players) {
+								if (player.name == mostVotedPlayer)
+									player.GetComponent<PhotonView> ().RPC ("KillPlayer", PhotonTargets.All, new object[] { });
+								else
+									player.GetComponent<PhotonView> ().RPC ("ResetPlayerVote", PhotonTargets.All, new object[] { });
+							}
 						}
 					} else
 						_localPM.votedPlayer = "";
@@ -294,6 +298,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					if (_localPM.isAlive && _localPM.role != "Seer")
 						_minimapHidingSeal.SetActive (true);
 				} else if (_formerState == 7) {
+					_audioSource.PlayOneShot (_audioSource.clip); // wolf howling
+
 					// This prevents the Seer from being detected because she's outside when the Werewolves go out
 					if (_localPM.role == "Seer") {
 						_localPM.GoHome ();

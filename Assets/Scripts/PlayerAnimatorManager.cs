@@ -68,15 +68,10 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 
 		void Start () 
-		{
-			anim = GetComponent<Animator>();
-			if (!anim)
-				Debug.LogWarning("PlayerAnimatorManager is Missing Animator Component",this);
+		{	
+			anim = GetComponentInChildren<Animator>();
 			targetRotation = transform.rotation;
-			if (GetComponent<Rigidbody> ())
-				rBody = GetComponent<Rigidbody> ();
-			else
-				Debug.Log ("No rigidbody attached to the player!");
+			rBody = GetComponent<Rigidbody> ();
 
 			forwardInput = turnInput = strafInput = jumpInput = 0;
 		}
@@ -85,6 +80,11 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		{
 			if ((photonView.isMine == false && PhotonNetwork.connected == true) || isBlocked)
 				return;
+			
+			if (!anim.isActiveAndEnabled || !anim) {
+				anim = GetComponentInChildren<Animator>();
+				Debug.LogWarning ("PlayerAnimatorManager is Missing Animator Component", this);
+			}
 			
 			GetInput ();
 			Turn ();
@@ -118,12 +118,10 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		void Run () {
 			if (Mathf.Abs (forwardInput) > inputSetting.inputDelay) {
 				velocity.z = moveSetting.forwardVel * forwardInput;
-				if(!anim)
-					anim.SetBool ("isWalking", true);
+				anim.SetBool ("isWalking", true);
 			} else {
 				velocity.z = 0;
-				if(!anim)
-					anim.SetBool ("isWalking", false);
+				anim.SetBool ("isWalking", false);
 			}
 
 			if (Mathf.Abs (strafInput) > inputSetting.inputDelay)
@@ -141,9 +139,10 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		}
 
 		void Jump () {
-			if (jumpInput > 0 && Grounded ())
+			if (jumpInput > 0 && Grounded ()) {
 				velocity.y = moveSetting.jumpVel;
-			else if (jumpInput == 0 && Grounded ())
+				anim.SetTrigger("jump");
+			} else if (jumpInput == 0 && Grounded ())
 				velocity.y = 0;
 			else
 				velocity.y -= physSetting.downAccel;

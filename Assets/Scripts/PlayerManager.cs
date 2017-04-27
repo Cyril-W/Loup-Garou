@@ -64,10 +64,11 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		void Awake()
 		{		
 			gameObject.name = photonView.owner.NickName;
-			GetComponentInChildren<TextMesh> ().text = PlayerManager.GetProperName(gameObject.name);
 
 			if (photonView.isMine)
 				isDiscovered = true;
+			else
+				GetComponentInChildren<TextMesh> ().text = PlayerManager.GetProperName(gameObject.name);
 							
 			OnSceneLoaded (SceneManager.GetActiveScene(), LoadSceneMode.Single);
 		}
@@ -79,9 +80,11 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					transform.position = new Vector3 (transform.position.x, Mathf.PingPong (Time.time, 1f) + 3, transform.position.z);
 			} else {
 				if (isAlive) {
+					// We activate the avatar accordingly
 					transform.GetChild (0).gameObject.SetActive (isMale);
 					transform.GetChild (1).gameObject.SetActive (!isMale);
 					transform.GetChild (2).gameObject.SetActive (false);
+
 					if (photonView.isMine && role == "LittleGirl")
 						PlayerAnimatorManager.compas.GetComponent<Image> ().color = (littleGirlSpying) ? Color.yellow : Color.red;
 				} else {
@@ -138,23 +141,11 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				transform.GetChild (1).gameObject.SetActive (false);
 				transform.GetChild (2).gameObject.SetActive (true);
 
-				// To dinstinguish whether the 3D model is our or not from a glance: red is our, blue is other's
-				Renderer[] rends = GetComponentsInChildren<Renderer> ();
-				if(photonView.isMine) {
-					rends[0].material.SetColor("_TintColor", Color.red);
-					rends[1].material.SetColor("_TintColor", Color.red);
-					rends[2].material.color = Color.red;
-				} else {
-					rends[0].material.SetColor("_TintColor", Color.blue);
-					rends[1].material.SetColor("_TintColor", Color.blue);
-					rends[2].material.color = Color.blue;
-				}
-
 				GetComponent<MinimapObjectID> ().enabled = false;
 				GetComponent<PlayerAnimatorManager> ().enabled = false;
-
-				GetComponentInChildren<TextMesh> ().text = PlayerManager.GetProperName(gameObject.name);
 			} else if (scene.buildIndex == 2) {
+				isAlive = true;
+
 				_rolePanel = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (1);
 				_votedPlayerText = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (3).GetComponentInChildren<Text> ();
 
@@ -165,22 +156,14 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					transform.GetChild (1).gameObject.SetActive (true);
 				transform.GetChild (2).gameObject.SetActive (false);
 
-				// To dinstinguish whether the 3D model is our or not from a glance: red is our, blue is other's
-				Renderer[] rends = GetComponentsInChildren<Renderer> ();
 				if(photonView.isMine) {
-					rends[1].material.color = Color.red;
-					rends[2].material.color = Color.red;
 					VoteManager.Instance.resetVoteButton.GetComponent<Button> ().onClick.AddListener (delegate {
 						ClearVotedPlayer ();
 					});
 					// clear the name of the local player to display it at the bottom of the screen 
 					_rolePanel.GetChild(4).GetComponentInChildren<Text> ().text = PlayerManager.GetProperName(gameObject.name);
-					GetComponentInChildren<TextMesh> ().text = "";
-				} else {
-					rends[1].material.color = Color.blue;
-					rends[2].material.color = Color.blue;
-					GetComponent<MinimapObjectID> ().enabled = true;
-				}
+				} else
+					GetComponent<MinimapObjectID> ().enabled = true;			
 				GetComponent<PlayerAnimatorManager> ().enabled = true;
 			}
 		}

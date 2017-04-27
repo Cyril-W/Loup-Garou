@@ -240,21 +240,23 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 					_mayorImage.sprite = isMayor [1];
 
 				PlayerManager localPM = PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ();
-				if (DayNightCycle.GetCurrentState () == 2 || DayNightCycle.GetCurrentState () == 3 || (DayNightCycle.GetCurrentState () == 7 && localPM.role == "Werewolf")) {
-					if(_owner.name != localPM.votedPlayer)
-						_actionButtons [0].SetActive (true);
-				} 
-				if (DayNightCycle.GetCurrentState () == 6 && localPM.seerRevealingAvailable && ownerPM.isDiscovered == false)
-					_actionButtons [3].SetActive (true);
+				if (localPM.isAlive) {
+					if (DayNightCycle.GetCurrentState () == 2 || DayNightCycle.GetCurrentState () == 3 || (DayNightCycle.GetCurrentState () == 7 && localPM.role == "Werewolf")) {
+						if (_owner.name != localPM.votedPlayer)
+							_actionButtons [0].SetActive (true);
+					} 
+					if (DayNightCycle.GetCurrentState () == 6 && localPM.seerRevealingAvailable && ownerPM.isDiscovered == false)
+						_actionButtons [3].SetActive (true);
 				
-				if (_owner.name == VoteManager.Instance.mostVotedPlayer) {
-					_mostVotedImage.SetActive (true);
-					if (DayNightCycle.GetCurrentState () == 8 && localPM.lifePotionAvailable)
-						_actionButtons [1].SetActive (true);					
-				} else {
-					_mostVotedImage.SetActive (false);	
-					if (DayNightCycle.GetCurrentState () == 8 && localPM.deathPotionAvailable)
-						_actionButtons [2].SetActive (true);
+					if (_owner.name == VoteManager.Instance.mostVotedPlayer) {
+						_mostVotedImage.SetActive (true);
+						if (DayNightCycle.GetCurrentState () == 8 && localPM.lifePotionAvailable)
+							_actionButtons [1].SetActive (true);					
+					} else {
+						_mostVotedImage.SetActive (false);	
+						if (DayNightCycle.GetCurrentState () == 8 && localPM.deathPotionAvailable)
+							_actionButtons [2].SetActive (true);
+					}
 				}
 			} else {
 				_deadImage.SetActive (true);

@@ -43,9 +43,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		void Start () {
 			nbPlayerAlive = PhotonNetwork.room.PlayerCount;
 
-			_infoText = transform.GetChild (1).GetChild (1).GetComponentInChildren<Text> ();
-			_dayText = transform.GetChild (1).GetChild (2).GetComponentInChildren<Text> ();
-			_nightText = transform.GetChild (1).GetChild (3).GetComponentInChildren<Text> ();
+			_infoText = transform.GetChild (1).GetChild (4).GetComponentInChildren<Text> ();
+			_dayText = transform.GetChild (1).GetChild (0).GetComponentInChildren<Text> ();
+			_nightText = transform.GetChild (1).GetChild (1).GetComponentInChildren<Text> ();
 
 			_endgamePanel = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (5).gameObject;
 			_endgamePanel.SetActive (false);
@@ -90,21 +90,34 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 							tents.GetChild (houseIndexes [i]).name
 						});
 					}
+				} else if (players.Length == 1) {
+					players [0].GetComponent<PhotonView> ().RPC ("SetPlayerRoleAndTent", PhotonTargets.All, new object[] {
+						"Villager",
+						tents.GetChild (0).name
+					});
 				} else if (players.Length == 2) {
 					players [0].GetComponent<PhotonView> ().RPC ("SetPlayerRoleAndTent", PhotonTargets.All, new object[] {
-						"LittleGirl",
+						"Werewolf",
 						tents.GetChild (0).name
 					});
 					players [1].GetComponent<PhotonView> ().RPC ("SetPlayerRoleAndTent", PhotonTargets.All, new object[] {
-						"Villager",
+						"Witch",
 						tents.GetChild (1).name
 					});
-				} else {
+				} else if (players.Length == 3) {
 					players [0].GetComponent<PhotonView> ().RPC ("SetPlayerRoleAndTent", PhotonTargets.All, new object[] {
-						"LittleGirl",
+						"Werewolf",
+						tents.GetChild (0).name
+					});
+					players [1].GetComponent<PhotonView> ().RPC ("SetPlayerRoleAndTent", PhotonTargets.All, new object[] {
+						"Witch",
 						tents.GetChild (1).name
 					});
-				}
+					players [2].GetComponent<PhotonView> ().RPC ("SetPlayerRoleAndTent", PhotonTargets.All, new object[] {
+						"Hunter",
+						tents.GetChild (2).name
+					});
+				} 
 			}
 		}
 		
@@ -147,7 +160,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		void OnTriggerStay(Collider other) {
 			if (other.gameObject == PlayerManager.LocalPlayerInstance) {
 				Transform worldCanvas = transform.GetChild (1);
-				worldCanvas.GetChild (0).gameObject.SetActive (true);
+				worldCanvas.GetChild (4).gameObject.SetActive (true);
 				if (worldCanvas.localScale.x <= 0.015f) 
 					worldCanvas.localScale += 0.0005f * Vector3.one;
 				if (worldCanvas.localPosition.y < 0.5f)
@@ -157,7 +170,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		void OnTriggerExit(Collider other) {
 			if (other.gameObject == PlayerManager.LocalPlayerInstance) {
-				transform.GetChild (1).GetChild (0).gameObject.SetActive (false);
+				transform.GetChild (1).GetChild (4).gameObject.SetActive (false);
 				transform.GetChild (1).localScale = 0.005f * Vector3.one;
 				transform.GetChild (1).localPosition = -0.51f * Vector3.forward;
 			}
@@ -183,42 +196,45 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// The conditions of victory depends on your being a Werewolf or not: if there is only Werewolves left,they win! If they are all dead, everyone else win!
 		/// </summary>
 		bool CheckIfGameFinished () {
-			if (DayNightCycle.Instance.isDebugging)
-				return false;
-			
-			string winnerRole = "";
-			if (nbPlayerAlive == _nbWerewolfAlive)
-				winnerRole = "Werewolf";
-			else if (_nbWerewolfAlive == 0)
-				winnerRole = "Villager";
-			else
-				return false;
+			bool isGameFinished = false;
 
-			PlayerManager localPM = PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ();
-			string cardToDisplay;
-			string victoryText;
-			if (localPM.isAlive) {
-				cardToDisplay = winnerRole;
-				string localPlayerRole = localPM.role;
-				if (winnerRole == "Werewolf" && localPlayerRole == winnerRole || winnerRole == "Villager" && localPlayerRole != "Werewolf")
-					victoryText = "Victory!";
-				else
-					victoryText = "Defeat...";
-			} else {
-				cardToDisplay = "Dead";
-				victoryText = "Defeat...\nYou died during the game...";
+			if (DayNightCycle.Instance.isDebugging == false) {			
+				string winnerRole = "";
+				if (nbPlayerAlive == _nbWerewolfAlive || _nbWerewolfAlive == 0) {
+					if (nbPlayerAlive == _nbWerewolfAlive)
+						winnerRole = "Werewolf";
+					else if (_nbWerewolfAlive == 0)
+						winnerRole = "Villager";
+				
+					string cardToDisplay;
+					string victoryText;
+					PlayerManager localPM = PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ();
+					if (localPM.isAlive) {
+						cardToDisplay = winnerRole;
+						string localPlayerRole = localPM.role;
+						if (winnerRole == "Werewolf" && localPlayerRole == winnerRole || winnerRole == "Villager" && localPlayerRole != "Werewolf")
+							victoryText = "Victory!";
+						else
+							victoryText = "Defeat...";
+					} else {
+						cardToDisplay = "Dead";
+						victoryText = "Defeat...\nYou died during the game...";
+					}
+					victoryText += "\n\nTo leave the game, click the button above.";
+					_endgamePanel.transform.GetChild (2).GetComponent<Text> ().text = victoryText;
+
+					Sprite displayedSprite = Resources.Load ("Cards/" + cardToDisplay, typeof(Sprite)) as Sprite;
+					if (displayedSprite != null)
+						_endgamePanel.transform.GetChild (1).GetComponent<Image> ().sprite = displayedSprite;
+					else
+						Debug.Log ("No image was found for " + cardToDisplay);
+				
+					isGameFinished = true;
+				}
 			}
-			victoryText += "\n\nTo leave the game, click the button above.";
-			_endgamePanel.transform.GetChild(2).GetComponent<Text> ().text = victoryText;
 
-			Sprite displayedSprite = Resources.Load ("Cards/" + cardToDisplay, typeof(Sprite)) as Sprite;
-			if (displayedSprite != null)
-				_endgamePanel.transform.GetChild (1).GetComponent<Image> ().sprite = displayedSprite;
-			else
-				Debug.Log ("No image was found for " + cardToDisplay);
-
-			localPM.GetComponent<PlayerAnimatorManager> ().enabled = false;
-			return true;
+			PlayerAnimatorManager.isBlocked = isGameFinished;
+			return isGameFinished;
 		}
 
 

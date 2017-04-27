@@ -41,16 +41,11 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 
 		void Start () {
-			if (isDebugging)
-				nbReadyNeeded = 2;
-			else
-				nbReadyNeeded = 6;
-
 			ChatManager.RoomName = PhotonNetwork.room.Name;
 
-			_howManyReady = readyPanel.GetChild(2).GetComponent<Text>();
+			_howManyReady = readyPanel.GetChild(0).GetComponent<Text>();
 
-			Button[] swapGenderButtons = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild(4).GetChild(2).GetComponentsInChildren<Button>();
+			Button[] swapGenderButtons = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild(5).GetChild(2).GetComponentsInChildren<Button>();
 			swapGenderButtons [0].onClick.AddListener (delegate {
 				PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ().SwapGender ();
 			});
@@ -136,7 +131,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// This event is triggered when the local player clicks on the button "Ready".
 		/// </summary>
 		public void SetReadyStatus() {
-			Text readyText = readyPanel.GetChild (1).GetComponentInChildren<Text> ();
+			Text readyText = readyPanel.GetChild (3).GetComponentInChildren<Text> ();
 			PlayerManager pM = PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager> ();
 
 			if (pM.role == "Ready") {

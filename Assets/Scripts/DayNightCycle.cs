@@ -47,6 +47,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		Light _sun;
 		Transform _moon;
 		ParticleSystem _stars;
+		AudioSource _audioSource;
 
 
 		#endregion
@@ -62,7 +63,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			_secondsToNextPhase = secondsOfPhases [GetCurrentState () - 1];
 
 			_clockDescriptionTexts = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (4).GetComponentsInChildren<Text> ();
-			_clockDescriptionTexts [0].text = "Welcome! You woke up in this Village, you have time for it now... Meet the other villagers, and Chat with them!\n\nTo dismiss this panel, click the button below.";
+			_clockDescriptionTexts [0].text = "Welcome!\n\nYou woke up in this Village...\n\nExplore it! Meet the other villagers! Chat with them!\n\nTo dismiss this panel, click the button below.";
 			_clockDescriptionTexts[1].transform.parent.gameObject.SetActive (false);
 			_hourglass = GameObject.FindGameObjectWithTag ("Canvas").transform.GetChild (4).GetChild (2);
 			_sun = GetComponentInChildren<Light>();
@@ -70,6 +71,7 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 	        _moon.transform.localPosition = new Vector3(0, 0, moonDistance);
 	        _moon.transform.localScale = new Vector3(moonScale, moonScale, moonScale);
 			_stars = GetComponentInChildren<ParticleSystem> ();
+			_audioSource = GetComponent<AudioSource> ();
 
 			pivotPoint.localRotation = Quaternion.Euler(0f, 0f, 360f * -currentTime);
 		}
@@ -89,6 +91,8 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 	        UpdateClock();
 
 			UpdateClockText (false);
+
+			UpdateMusic ();
 
 	        transform.localRotation = Quaternion.Euler((currentTime * 360.0f), 0, 0);
 	    }
@@ -153,6 +157,18 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			}
 	    }
 
+		void UpdateMusic()
+		{
+			// the music only plays at night
+			if (currentTime >= 0.5 && currentTime <= 1) {
+				if (_audioSource.enabled == false)
+					_audioSource.enabled = true;
+			} else {
+				if (_audioSource.enabled == true)
+					_audioSource.enabled = false;
+			}
+		}
+
 		/// <summary>
 		/// This function indicates to all player what to do depending on the time of the day. It also (in)activate the resetVoteButton
 		/// </summary>
@@ -173,43 +189,42 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 				bigText.text = "";
 
 				if (state == 1)
-					bigText.text += "Wake up! You may explore the Village, you have time for it now... What happend during night?";
+					bigText.text += "Wake up!\n\nExplore the Village...\n\nWhat happened during night?";
 				else if (state == 2) {
 					if (VoteManager.Instance.countDay == 1)
-						bigText.text += "Time to discuss on the Chat and decide who to vote as the new Mayor by clicking on the button \"Vote\" in front of the player Tent!";
+						bigText.text += "Discuss on the Chat.\n\nDecide who will be the new Mayor.\n\nThen click on the button \"Vote\" in front of the player Tent!";
 					else
-						bigText.text += "Time to discuss on the Chat and decide who to eliminate by clicking on the button \"Vote\" in front of the player Tent!";
+						bigText.text += "Discuss on the Chat.\n\nDecide who will be the next victim.\n\nThen click on the button \"Vote\" in front of the player Tent!";
 				} else if (state == 3)
-					bigText.text += "Hurry ! It is your last chance to vote or change your vote by clicking on the button \"Vote\" located in front of the player Tent! If you are sure about your choice, patience.";
+					bigText.text += "Hurry!\n\nLast chance to vote or change your vote.\n\nDon't forget: click on the button \"Vote\" located in front of the player Tent!";
 				else if (state == 4)
-					bigText.text += "Votes have all been counted! Now finish your discussions and go back to your tent, night is falling upon the Village!";
+					bigText.text += "Votes have all been counted!\n\nGO BACK TO YOUR TENT (IN RED)!\n\nNight is falling upon the Village...";
 				else if (state == 5)
-					bigText.text += "The night has just fallen, keep your eyes closed and wait until dawn, or until asked to play a specific role if you have one!";
+					bigText.text += "The night has just fallen.\n\nKeep your eyes closed.\n\nWait until asked to play a specific role, if any!";
 				else if (state == 6) {
 					if (localPM.role == "Seer")
-						bigText.text += "Come out, come out, wherever you are! Seer, time for you to come out and discover someone's role!";
+						bigText.text += "Come out, come out, wherever you are!\n\nSeer, time for you to come out and discover someone's role!";
 					else
-						bigText.text += "Hold on to your little secrets! The Seer may have already discovered your role, and if not: time for him to do so!";
+						bigText.text += "Hold on to your little secrets!\n\nThe Seer may have already discovered yours!";
 				} else if (state == 7) {
 					if (localPM.role == "Werewolf")
-						bigText.text += "Time for you, as a Werewolf, to strike down your opponent! Go on the Chat and agree with other Werewolves on who to devour...";
+						bigText.text += "Time for you, as a Werewolf, to strike!\n\nGo on the Chat to discuss!\n\nAgree with other Werewolves on who to kill...";
 					else
-						bigText.text += "Time for the Werewolf to strike down their opponent! Beware: they are silently agreeing on the Chat on who to devour...";
+						bigText.text += "Time for the Werewolf to strike!\n\nBeware: they are silently agreeing on the Chat on who to devour...";
 				} else if (state == 8) {
 					if (localPM.role == "Witch")
-						bigText.text += "Votes have all been counted! The victim's fate is now in your own hands, Witch! Will you save the victim? Will you kill someone?";
+						bigText.text += "Votes have all been counted!\n\nThe choice is your, Witch!\n\nWill you save the victim? Will you kill someone?";
 					else
-						bigText.text += "Votes have all been counted! The victim's fate is now in your own hands, Witch! Will you save the victim? Will you kill someone?";
+						bigText.text += "Votes have all been counted!\n\nThe victim's fate is now in the Witch's hands!\n\nWill he be saved? Will someone be killed?";
 				}
-
-				bigText.text += "\n\nTo dismiss this panel, click the button below.";
 			} else if (!localPM.isAlive)
-				smallText.text = "You died... You may spy the other players or leave the game now...";
+				smallText.text = "You died...\nYou may spy the other players or leave the game now...";
 			else {
-				smallText.text = "You have up to " + secondsOfPhases[state - 1] + "seconds to ";
+				smallText.text = secondsOfPhases[state - 1] + "seconds to:\n";
 				string mostVotedPlayer = PlayerManager.GetProperName (VoteManager.Instance.mostVotedPlayer);
 				if (mostVotedPlayer == "")
-					mostVotedPlayer = "Nobody";
+					mostVotedPlayer = "nobody";
+				mostVotedPlayer = "\n\nMost votes: " + mostVotedPlayer;
 				
 				if (state == 1) {
 					if (VoteManager.Instance.countDay == 1)
@@ -218,14 +233,14 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 						smallText.text += "discover who died during the night.";
 				} else if (state == 2) {					
 					if (VoteManager.Instance.countDay == 1)
-						smallText.text += "vote for the new Major. " + mostVotedPlayer + " has the most votes for now.";
+						smallText.text += "vote for the new Major." + mostVotedPlayer;
 					else
-						smallText.text += "vote for the next victim. " + mostVotedPlayer + " has the most votes for now.";
+						smallText.text += "vote for the next victim." + mostVotedPlayer;
 				} else if (state == 3) {
 					if (VoteManager.Instance.countDay == 1)
-						smallText.text += "modify your vote for the new Mayor. " + mostVotedPlayer + " has the most votes for now.";
+						smallText.text += "modify your vote for the new Mayor." + mostVotedPlayer;
 					else
-						smallText.text += "modify your vote for the next victim. " + mostVotedPlayer + " has the most votes for now.";
+						smallText.text += "modify your vote for the next victim." + mostVotedPlayer;
 				} else if (state == 4)
 					smallText.text += "go back home before night.";
 				else if (state == 5)
@@ -237,12 +252,12 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 						smallText.text += "wait while the Seer discover a role.";
 				} else if (state == 7) {
 					if (localPM.role == "Werewolf")
-						smallText.text += "vote against a player. " + mostVotedPlayer + " has the most votes for now.";
+						smallText.text += "vote against a player." + mostVotedPlayer;
 					else
 						smallText.text += "wait while Werewolves vote against a player.";
 				} else if (state == 8) {
 					if (localPM.role == "Witch")
-						smallText.text += "decide the fate of players. " + mostVotedPlayer + " has been designated.";
+						smallText.text += "decide the fate of players." + mostVotedPlayer;
 					else 
 						smallText.text += "wait while the Witch decides what to do.";					
 				}
@@ -278,30 +293,40 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		/// This function is called to know if the Seer or the Witch phase can be skipped or not.
 		/// </summary>
 		bool CheckIfPhaseIsPassed() {
-			if (!PhotonNetwork.isMasterClient)
-				return false;
-			
-			if (GetCurrentState() != 6 && GetCurrentState() != 8)
-				return false;			
-
-			GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");		
-			bool isRoleConcernedActive = false;
-			foreach (GameObject player in players) {
-				PlayerManager pM = player.GetComponent<PlayerManager> ();
-				if (pM.isAlive) {
-					if (GetCurrentState() == 6 && pM.role == "Seer")
-						isRoleConcernedActive = true;
-					else if (GetCurrentState() == 8 && (pM.deathPotionAvailable || pM.lifePotionAvailable))
-						isRoleConcernedActive = true;
+			// Check if we are in phase 6 (or 8) and there is no Seer (resp. Witch) alive
+			if ((GetCurrentState () == 6 || GetCurrentState () == 8) && PhotonNetwork.isMasterClient) {
+				GameObject[] players = GameObject.FindGameObjectsWithTag ("Player");
+				foreach (GameObject player in players) {
+					PlayerManager pM = player.GetComponent<PlayerManager> ();
+					if (pM.isAlive)
+						if ((GetCurrentState () == 6 && pM.role == "Seer") || (GetCurrentState () == 8 && pM.role == "Witch"))
+							return false;						
 				}
-			}
-
-			if (!isRoleConcernedActive) {
 				currentTime = GetCurrentState () / 8f;		
 				return true;
-			} else
-				return false;
-		}	
+			}
+			else 
+			{
+				// Check if we are in phase 8 and there is no more potion available for the Witch
+				PlayerManager localPM = PlayerManager.LocalPlayerInstance.GetComponent<PlayerManager>();
+				if (GetCurrentState () == 8 && localPM.isAlive && localPM.role == "Witch") {
+					if (localPM.deathPotionAvailable == false && localPM.lifePotionAvailable == false) {
+						GetComponent<PhotonView>().RPC ("PassPhase", PhotonTargets.MasterClient, new object[] { });	
+						return true;
+					}
+					return false;
+				}
+				// Or the phase is not passed
+				else
+					return false;				
+			} 
+		}
+
+		[PunRPC]
+		public void PassPhase () {
+			if (PhotonNetwork.isMasterClient)
+				currentTime = GetCurrentState () / 8f;	
+		}
 
 		IEnumerator RotateHourGlass() {
 			_hourglass.rotation = (_isHourGlassUp) ? Quaternion.Euler(0f * Vector3.forward) : Quaternion.Euler(180f * Vector3.forward);

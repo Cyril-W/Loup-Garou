@@ -12,9 +12,14 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		#region Public Variables 
 
-
+		/// <summary>
+		/// The local player the camera should follow.
+		/// </summary>
 		public Transform target;
 
+		/// <summary>
+		/// Helps to structure the variables, especially in Unity's Inspector.
+		/// </summary>
 		[System.Serializable]
 		public class PositionSettings {
 			public Vector3 targetPosOffset = new Vector3 (0, 1f, 0);
@@ -25,6 +30,9 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			public float minZoom = -15f;
 		}
 
+		/// <summary>
+		/// Helps to structure the variables, especially in Unity's Inspector.
+		/// </summary>
 		[System.Serializable]
 		public class OrbitSettings {
 			public float xRotation = -20f;
@@ -35,7 +43,13 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 			public float hOrbitSmooth = 150f;
 		}
 
+		/// <summary>
+		/// Contains the variables concerning the position of the camera.
+		/// </summary>
 		public PositionSettings positionSetting = new PositionSettings ();
+		/// <summary>
+		/// Contains the variables concerning how the camera should rotate around the target.
+		/// </summary>
 		public OrbitSettings orbitSetting = new OrbitSettings ();
 
 
@@ -63,10 +77,12 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 		}
 
 		void Update () {
+			// if the player hold the right mouse button, orbit the camera with the mouse
 			if (Input.GetMouseButton (1))
 				GetInput (true);
-			else
+			else // orbit the camera with the numpad
 				GetInput (false);
+			
 			OrbitTarget ();
 			ZoomInOnTarget ();
 		}

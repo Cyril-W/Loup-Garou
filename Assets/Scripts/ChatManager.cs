@@ -254,11 +254,11 @@ namespace Com.Cyril_WIRTZ.Loup_Garou
 
 		void IChatClientListener.OnGetMessages(string channelName, string[] senders, object[] messages) {
 			for (int i = 0; i < messages.Length; i++) {
-				if (chatMessages != null) {
+				if (chatMessages != null) {					
+					chatMessages.text += "[" + GetChannelName (channelName) + "] " + PlayerManager.GetProperName (senders [i]) + " > " + messages [i] + "\n";
 					Canvas.ForceUpdateCanvases ();
 					chatMessages.transform.parent.GetComponent<ScrollRect>().verticalNormalizedPosition = 0f;
 					Canvas.ForceUpdateCanvases ();
-					chatMessages.text += "[" + GetChannelName (channelName) + "] " + PlayerManager.GetProperName (senders [i]) + " > " + messages [i] + "\n";
 				} else
 					Debug.Log ("Oops, seems there is nothing to contain the message!");
 			}
